@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <iterator>
+#include <filesystem>
 
 // implement in different class?
 static uint8_t key_pressed() {}
@@ -31,6 +32,7 @@ void chip8::reset() {
 	// Clear registers V0-VF
 	memset(registers, 0, sizeof(registers));
 }
+
 void chip8::initialize() {
 	reset();
 
@@ -38,12 +40,20 @@ void chip8::initialize() {
 	memset(memory + sizeof(fontset), 0, sizeof(memory) - sizeof(fontset));
 }
 
+void chip8::load_program(char* file_name) {
+	auto file = fopen(file_name, "r");
+	
+	for (uint16_t addr = program_start_addr; addr < sizeof(memory) && !feof(file); addr++) {
+		memory[addr] = fgetc(file);
+	}
+}
+
 void chip8::run_instruction() {
 
 	switch (opcode & 0xF000)
 	{
-		uint8_t VX_reg = (opcode >> 8) & 0xF; // 3rd hex 
-		uint8_t VY_reg = (opcode >> 4) & 0xF;
+		uint8_t VX_reg = (opcode >> 8) & 0xF; // 3rd nibble
+		uint8_t VY_reg = (opcode >> 4) & 0xF; // 2nd nibble
 
 		case 0x0000:
 			if (opcode == 0x00E0) {

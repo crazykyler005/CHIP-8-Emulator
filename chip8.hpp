@@ -14,7 +14,7 @@ public:
 	// uint8_t key_pressed();
 	void draw(uint8_t& x, uint8_t& y, uint8_t pix_height);
 
-	void load_program(uint8_t* program);
+	void load_program(char* file_name);
 
 private:
 	inline static uint8_t font_addr_start = 0x000;
@@ -50,8 +50,6 @@ private:
 		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 	};
 
-	uint8_t gfx[64 * 32] = {};
-
 	uint8_t memory[4096] = {};
 	uint8_t registers[16] = {};
 
@@ -64,4 +62,6 @@ private:
 	uint16_t opcode = 0;
 
 	uint8_t program_ctr = program_start_addr;
+
+	uint8_t px_states[64 * 32] = {};
 };
