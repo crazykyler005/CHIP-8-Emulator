@@ -1,32 +1,49 @@
 #include <cstdio>
+#include <cstring>
+
 #include <chip8.hpp>
 #include <random>
 #include <stdlib.h>
+#include <algorithm>
+#include <iterator>
 
 // implement in different class?
 static uint8_t key_pressed() {}
 
 void chip8::draw(uint8_t& x, uint8_t& y, uint8_t pix_height) {}
 
-void chip8::initialize() {
-	// program_ctr = 0x200;  // Program counter starts at 0x200
-	// opcode = 0;      // Reset current opcode	
-	// index_ctr = 0;      // Reset index register
-	// stack_ptr = 0;      // Reset stack pointer
+chip8::chip8() {
+	// loading fountset into the designated position in memory (0-80)
+	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));
+}
 
-	// Clear display	
-	// Clear stack
+void chip8::reset() {
+	program_ctr = program_start_addr;
+	opcode = 0;
+	index_reg.val = 0;
+	stack_ptr = 0;
+	memset(registers, 0, sizeof(registers));
+
+	// Clear display
+	// reset_display()
+	// Clear stack. May not work with uint12_t struct
+	memset(stack, 0, sizeof(stack)/sizeof(stack[0]));
 	// Clear registers V0-VF
-	// Clear memory
+	memset(registers, 0, sizeof(registers));
+}
+void chip8::initialize() {
+	reset();
+
+	// Clear most of the memory
+	memset(memory + sizeof(fontset), 0, sizeof(memory) - sizeof(fontset));
 }
 
 void chip8::run_instruction() {
-	
 
 	switch (opcode & 0xF000)
 	{
-		uint8_t VX_reg = (opcode >> 2) & 0xF;
-		uint8_t VY_reg = (opcode >> 1) & 0xF;
+		uint8_t VX_reg = (opcode >> 8) & 0xF; // 3rd hex 
+		uint8_t VY_reg = (opcode >> 4) & 0xF;
 
 		case 0x0000:
 			if (opcode == 0x00E0) {
@@ -41,7 +58,7 @@ void chip8::run_instruction() {
 		case 0x1000: // 1NNN
 			// jump to addr at 0NNN
 			program_ctr = 0x0FFF & opcode;
-			break;
+			return;
 
 		case 0x2000: // 2NNN
 			stack[stack_ptr].val = program_ctr;
@@ -87,24 +104,26 @@ void chip8::run_instruction() {
 			// NOTE: 8XY3, 8XY6, 8XY7 and 8XYE were not documented in the original CHIP-8
 			// specification so they may never end up being used
 
-			if ((opcode & 0xF) == 0) {
+			uint8_t code = opcode & 0xF; //arithmetic operation
+
+			if (code == 0) {
 				registers[VX_reg] = registers[VY_reg];
-			} else if ((opcode & 0xF) == 1) {
+			} else if (code == 1) {
 				registers[VX_reg] |= registers[VY_reg];
-			} else if ((opcode & 0xF) == 2) {
+			} else if (code == 2) {
 				registers[VX_reg] &= registers[VY_reg];
-			} else if ((opcode & 0xF) == 3) {
+			} else if (code == 3) {
 				registers[VX_reg] ^= registers[VY_reg];
-			} else if ((opcode & 0xF) == 4) {
+			} else if (code == 4) {
 				registers[VX_reg] += registers[VY_reg];
-			} else if ((opcode & 0xF) == 5) {
+			} else if (code == 5) {
 				registers[VX_reg] -= registers[VY_reg];
-			} else if ((opcode & 0xF) == 6) {
+			} else if (code == 6) {
 				registers[VX_reg] >>= 1;
-			} else if ((opcode & 0xF) == 7) {
+			} else if (code == 7) {
 				registers[VX_reg] = registers[VY_reg] - registers[VX_reg];
-			} else if ((opcode & 0xF) == 0xE) {
-				registers[VX_reg] <<= 1; 
+			} else if (code == 0xE) {
+				registers[VX_reg] = 1; 
 			}
 			break;
 
@@ -119,10 +138,12 @@ void chip8::run_instruction() {
 			// Sets I to the address NNN
 			index_reg.val = opcode & 0x0FFF;
 			break;
+
 		case 0xB000: // PC = V0 + NNN
 			// Jumps to the address NNN plus V0
 			program_ctr = registers[0] + (opcode & 0xFFF);
-			break;
+			return;
+
 		case 0xC000: // Vx = rand() & NN
 			registers[VX_reg] = static_cast<uint8_t>(rand() & opcode);
 			break;
