@@ -2,11 +2,14 @@ This is an incomplement Chip-8 emulator that I plan to integrate with opengl for
 
 ## Planned Features
 Sound fx
+
 Freemove the window size
+
 Key bindings
+
 Controller input (maybe)
 
-A menu bar with the following options
+A menu bar with the following options:
 - Select and load a program/game from a file
 - Reset option
 - Save states
