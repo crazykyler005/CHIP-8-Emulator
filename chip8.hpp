@@ -15,8 +15,16 @@ public:
 	void draw(uint8_t& x, uint8_t& y, uint8_t pix_height);
 
 	void load_program(char* file_name);
+	void save_program_state(std::string program_name, uint8_t state_number);
+	void load_program_state(std::string file_name)
 
 private:
+
+	std::string SAVE_FILE_EXTENSION = ".sav";
+	// 0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
+	// 0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
+	// 0x200-0xFFF - Program ROM and work RAM
+
 	inline static uint8_t font_addr_start = 0x000;
 	inline static uint8_t font_addr_end = 0x1FF;
 
@@ -55,13 +63,20 @@ private:
 
 	// stack is used to remeber the current location before a jump operation is made
 	// the program counter gets stored in the stack
-	uint12_t stack[16] = {};
-	uint8_t stack_ptr = 0;
+
+	// stack
+	inline static MAX_STACK_SIZE = 16;
+	std::vector<uint12_t> stack;
+	// uint12_t stack[16] = {};
+
+	// stack point may not be necessary if I use a vector size I can just 
+	// reference the last program_ctr value added
+	//uint8_t stack_ptr = 0;
 
 	uint12_t index_reg = {};
 	uint16_t opcode = 0;
 
-	uint8_t program_ctr = program_start_addr;
+	uint12_t program_ctr = {program_start_addr};
 
 	uint8_t px_states[64 * 32] = {};
 };

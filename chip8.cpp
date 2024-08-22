@@ -22,7 +22,8 @@ void chip8::reset() {
 	program_ctr = program_start_addr;
 	opcode = 0;
 	index_reg.val = 0;
-	stack_ptr = 0;
+	stack.clear();
+	// stack_ptr = 0;
 	memset(registers, 0, sizeof(registers));
 
 	// Clear display
@@ -41,6 +42,8 @@ void chip8::initialize() {
 }
 
 void chip8::load_program(char* file_name) {
+	reset();
+
 	auto file = fopen(file_name, "r");
 	
 	for (uint16_t addr = program_start_addr; addr < sizeof(memory) && !feof(file); addr++) {
@@ -59,6 +62,8 @@ void chip8::run_instruction() {
 			if (opcode == 0x00E0) {
 				// clear screen
 			} else if (opcode == 0x00EE) {
+				// program_ctr = stack[stack_ptr];
+				program_ctr = stack.pop_back();
 				// return from subroutine
 			} else if (opcode > 0xFF) {
 				printf("Unsupported opcode");
@@ -71,9 +76,10 @@ void chip8::run_instruction() {
 			return;
 
 		case 0x2000: // 2NNN
-			stack[stack_ptr].val = program_ctr;
-			program_ctr = 0x0FFF & opcode;
 			// call subroutine at 0NNN
+			// stack[stack_ptr].val = program_ctr;
+			stack.push_back(program_ctr);
+			program_ctr = 0x0FFF & opcode;
 			break;
 
 		case 0x3000: // 3XNN
@@ -217,5 +223,116 @@ void chip8::run_instruction() {
 
 		default:
 			break;
+	}
+}
+
+
+// the program state is saved to a file in the following order
+// - program counter
+// - index register
+// - current stack size
+// - all stack elements from first to last added if stack size is not 0
+// - the state of each pixel on the screen represented in bits
+// - memory from 0x200 and onward (can be overwritten by program thus we need to store it)
+void chip8::save_program_state(std::string program_name, uint8_t state_number) {
+	// TODO: add a CRC to the end of the file and check if it is valid when loading it
+
+	std::vector<uint8_t> buffer = {program_ctr};
+	buffer.push_back(static_cast<uint16_t>(index_reg.val));
+	
+	buffer.push_back(static_cast<uint8_t>(stack.size()));
+
+	for (auto& prog_ctr : stack) {
+		buffer.push_back(static_cast<uint16_t>(prog_ctr.val));
+	}
+
+	uint8_t px_byte = 0;
+	for (size_t i = 0; i < (sizeof(px_states)/sizeof(px_states[0])); i++) {
+		uint8_t px_bit_mask = 1 << (i % 8);
+
+		// if pixel is on
+		if (px_states[i]) {
+			px_byte |= px_bit_mask;
+		}
+
+		if (px_bit_mask & (1 << 7)) {
+			buffer.push_back(px_byte);
+			px_byte = 0;
+		}
+	}
+
+	// get last memory address with relevent data
+	uint8_t last_mem_address = 0;
+	for (size_t i = 4096 - 1; i >= 0x200; i--) {
+		if (memory[i] != 0) {
+			last_mem_address = i;
+			break;
+		}
+	}
+
+	for (size_t i = 0x200; i <= last_mem_address; i++) {
+		buffer.push_back(buffer[i]);
+	}
+
+	std::string sav_file_name = program_name + "_" + std::to_string(state_number) + ".sav";
+
+	// will overwrite the file if it already exists
+	auto file = fopen(sav_file_name, "w");
+
+	fprintf(file, "%s", buffer.data());
+	fclose(file);
+}
+
+void chip8::load_program_state(std::string file_name) {
+
+	auto file = fopen(file_name, "r");
+
+	fseek(file, 0L, SEEK_END);
+	file_size = ftell(file);
+
+	// seek to beginning of file
+	fseek(file, 0L, SEEK_SET);
+
+	std::vector<uint8_t> buffer;
+	buffer.reserve(file_size);
+
+	// Don't want to check for EOF char in the case of a false positive
+	while (ftell(file) != file_size) {
+		buffer.emplace_back(fgetc(file));
+	}
+
+	uint8_t buffer_ptr = 0;
+	program_ctr = buffer[buffer_ptr++];
+
+	index_reg.val = buffer[buffer_ptr] + static_cast<uint16_t>(buffer[buffer_ptr + 1]) << 8;
+	buffer_ptr += 2;
+
+	auto stack_size = buffer[buffer_ptr++];
+	stack.clear();
+	stack.reserve(stack_size);
+
+	for (uint8_t i = 0; i < stack_size; i++) {
+		uint12_t ptr_ctr = { buffer[buffer_ptr] + static_cast<uint16_t>(buffer[buffer_ptr + 1]) };
+		stack.emplace_back(std::move(ptr_ctr));
+
+		buffer_ptr += 2;
+	}
+
+	px_states[0] = buffer[buffer_ptr] & 1;
+	for (size_t i = 1; i < (sizeof(px_states)/sizeof(px_states[0])); i++) {
+		uint8_t px_bit_mask = 1 << (i % 8);
+		
+		if (px_bit_mask == (1 << 0)) {
+			buffer_ptr++;
+		}
+
+		px_states[i] = (buffer[buffer_ptr] & (1 << (i % 8))) ? 1 : 0;
+	}
+
+	buffer_ptr++;
+
+	for (uint8_t i = 0; buffer_ptr != file_size; i++) {
+		memory[0x200 + i] = buffer[buffer_ptr];
+		buffer_ptr++;
 	}
 }
