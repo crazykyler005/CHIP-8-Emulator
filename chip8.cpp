@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <iterator>
 #include <filesystem>
+#include "helper_functions.hpp"
+#include "byteorder.h"
 
 // implement in different class?
 static uint8_t key_pressed() {}
@@ -45,6 +47,10 @@ void chip8::load_program(char* file_name) {
 	reset();
 
 	auto file = fopen(file_name, "r");
+
+	if (file == NULL) {
+		return;
+	}
 	
 	for (uint16_t addr = program_start_addr; addr < sizeof(memory) && !feof(file); addr++) {
 		memory[addr] = fgetc(file);
@@ -228,22 +234,43 @@ void chip8::run_instruction() {
 
 
 // the program state is saved to a file in the following order
-// - program counter
-// - index register
-// - current stack size
-// - all stack elements from first to last added if stack size is not 0
-// - the state of each pixel on the screen represented in bits
-// - memory from 0x200 and onward (can be overwritten by program thus we need to store it)
-void chip8::save_program_state(std::string program_name, uint8_t state_number) {
+// - 4 byte utc timestamp in seconds
+// - 2 byte program counter
+// - 2 byte index register
+// - 1 byte current stack size
+// - all stack elements from first to last added if stack size is not 0 (0 - 32 bytes)
+// - the state of each pixel on the screen represented in bits (pixels / 8 = 256)
+// - memory from 0x200 and onward (can be overwritten by program thus we need to store it) (4096 – 512 = 3584)
+bool chip8::save_program_state(std::string program_name, uint8_t state_number, uint32_t utc_timestamp) {
 	// TODO: add a CRC to the end of the file and check if it is valid when loading it
 
-	std::vector<uint8_t> buffer = {program_ctr};
-	buffer.push_back(static_cast<uint16_t>(index_reg.val));
-	
-	buffer.push_back(static_cast<uint8_t>(stack.size()));
+	// 4 + 2 + 2 + 1 + 32 + 256 + 3584
+	static size_t MAX_SAVE_FILE_SIZE = 3881
+
+	if (program_name.size() == 0) {
+		return false;
+	}
+
+	std::vector<uint8_t> buffer(MAX_SAVE_FILE_SIZE);
+    uint8_t* idx = buffer.data();
+
+    sys_put_be32(utc_timestamp, idx);
+    idx += sizeof(utc_timestamp);
+
+	auto program_ctr_16 = static_cast<uint16_t>(program_ctr.val)
+	sys_put_be16(program_ctr_16, idx);
+    idx += sizeof(program_ctr_16);
+
+	auto index_reg_16 = static_cast<uint16_t>(program_ctr.val)
+	sys_put_be16(index_reg_16, idx);
+    idx += sizeof(index_reg_16);
+
+	buffer[idx++] = static_cast<uint8_t>(stack.size());
 
 	for (auto& prog_ctr : stack) {
-		buffer.push_back(static_cast<uint16_t>(prog_ctr.val));
+		auto prog_ctr_16 = static_cast<uint16_t>(prog_ctr)
+		sys_put_be16(prog_ctr_16, idx);
+		idx += sizeof(prog_ctr_16);
 	}
 
 	uint8_t px_byte = 0;
@@ -256,7 +283,7 @@ void chip8::save_program_state(std::string program_name, uint8_t state_number) {
 		}
 
 		if (px_bit_mask & (1 << 7)) {
-			buffer.push_back(px_byte);
+			buffer[idx++] = px_byte;
 			px_byte = 0;
 		}
 	}
@@ -271,7 +298,7 @@ void chip8::save_program_state(std::string program_name, uint8_t state_number) {
 	}
 
 	for (size_t i = 0x200; i <= last_mem_address; i++) {
-		buffer.push_back(buffer[i]);
+		buffer[idx++] = memory[i];
 	}
 
 	std::string sav_file_name = program_name + "_" + std::to_string(state_number) + ".sav";
@@ -281,11 +308,21 @@ void chip8::save_program_state(std::string program_name, uint8_t state_number) {
 
 	fprintf(file, "%s", buffer.data());
 	fclose(file);
+
+	return true;
 }
 
 void chip8::load_program_state(std::string file_name) {
 
+	if (file_name.size() == 0) {
+		return;
+	}
+
 	auto file = fopen(file_name, "r");
+
+	if (file == NULL) {
+		return;
+	}
 
 	fseek(file, 0L, SEEK_END);
 	file_size = ftell(file);
@@ -301,38 +338,46 @@ void chip8::load_program_state(std::string file_name) {
 		buffer.emplace_back(fgetc(file));
 	}
 
-	uint8_t buffer_ptr = 0;
-	program_ctr = buffer[buffer_ptr++];
+	uint8_t* buffer_ptr = buffer.data();
+	
+	// ignore timestamp
+	buffer_ptr += sizeof(uint32_t)
 
-	index_reg.val = buffer[buffer_ptr] + static_cast<uint16_t>(buffer[buffer_ptr + 1]) << 8;
-	buffer_ptr += 2;
+	program_ctr.val = sys_get_be16(buffer_ptr);
+	buffer_ptr += sizeof(uint16_t);
 
-	auto stack_size = buffer[buffer_ptr++];
+	index_reg.val = sys_get_be16(buffer_ptr);
+	buffer_ptr += sizeof(uint16_t);
+
+	auto stack_size = buffer_ptr[0];
+	buffer_ptr++;
+
 	stack.clear();
 	stack.reserve(stack_size);
 
 	for (uint8_t i = 0; i < stack_size; i++) {
-		uint12_t ptr_ctr = { buffer[buffer_ptr] + static_cast<uint16_t>(buffer[buffer_ptr + 1]) };
+		uint12_t ptr_ctr = { sys_get_be16(buffer_ptr) };
 		stack.emplace_back(std::move(ptr_ctr));
 
-		buffer_ptr += 2;
+		buffer_ptr += sizeof(uint16_t);
 	}
 
-	px_states[0] = buffer[buffer_ptr] & 1;
-	for (size_t i = 1; i < (sizeof(px_states)/sizeof(px_states[0])); i++) {
+	px_states[0] = buffer_ptr[0] & 1;
+	for (size_t i = 1; i < (sizeof(px_states) / 8); i++) {
 		uint8_t px_bit_mask = 1 << (i % 8);
 		
 		if (px_bit_mask == (1 << 0)) {
 			buffer_ptr++;
 		}
 
-		px_states[i] = (buffer[buffer_ptr] & (1 << (i % 8))) ? 1 : 0;
+		px_states[i] = (buffer_ptr[0] & px_bit_mask) ? 1 : 0;
 	}
 
 	buffer_ptr++;
 
-	for (uint8_t i = 0; buffer_ptr != file_size; i++) {
-		memory[0x200 + i] = buffer[buffer_ptr];
+	// if the amount of total bytes read from the buffer is less than the file size
+	for (uint8_t i = 0; static_cast<uint16_t>(buffer_ptr - buffer.data()) < file_size; i++) {
+		memory[0x200 + i] = buffer_ptr[0];
 		buffer_ptr++;
 	}
 }
