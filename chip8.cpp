@@ -252,18 +252,18 @@ bool chip8::save_program_state(std::string program_name, uint8_t state_number, u
 	}
 
 	std::vector<uint8_t> buffer(MAX_SAVE_FILE_SIZE);
-    uint8_t* idx = buffer.data();
+	uint8_t* idx = buffer.data();
 
-    sys_put_be32(utc_timestamp, idx);
-    idx += sizeof(utc_timestamp);
+	sys_put_be32(utc_timestamp, idx);
+	idx += sizeof(utc_timestamp);
 
 	auto program_ctr_16 = static_cast<uint16_t>(program_ctr.val)
 	sys_put_be16(program_ctr_16, idx);
-    idx += sizeof(program_ctr_16);
+	idx += sizeof(program_ctr_16);
 
 	auto index_reg_16 = static_cast<uint16_t>(program_ctr.val)
 	sys_put_be16(index_reg_16, idx);
-    idx += sizeof(index_reg_16);
+	idx += sizeof(index_reg_16);
 
 	buffer[idx++] = static_cast<uint8_t>(stack.size());
 
