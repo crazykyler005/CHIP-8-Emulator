@@ -13,14 +13,14 @@ std::string get_time_str(time_t utc_seconds, bool in_local_time) {
 
 	// Convert epoch time to struct
 	if (in_local_time) {
-        localtime_r(&utc_seconds, &time_struct);
-    } else {
-        gmtime_r(&utc_seconds, &time_struct);
-    }
+		localtime_r(&utc_seconds, &time_struct);
+	} else {
+		gmtime_r(&utc_seconds, &time_struct);
+	}
 
-    // Format local time as string
-    char buffer[20];
-    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &local_tm);
+	// Format local time as string
+	char buffer[20];
+	strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &local_tm);
 
 	return std::string(buffer);
 }
