@@ -3,8 +3,6 @@ This is an incomplement Chip-8 emulator that I plan to integrate with opengl for
 ## Planned Features
 Sound fx
 
-Freemove the window size
-
 Key bindings
 
 Controller input (maybe)
