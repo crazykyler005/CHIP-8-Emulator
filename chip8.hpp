@@ -15,15 +15,17 @@ public:
 	void draw(uint8_t& x, uint8_t& y, uint8_t pix_height);
 
 	void load_program(char* file_name);
-	void save_program_state(std::string program_name, uint8_t state_number);
-	void load_program_state(std::string file_name)
+	void save_program_state(uint8_t state_number, uint32_t utc_timestamp);
+	void load_program_state(std::string file_name);
 
 private:
-
+	std::string program_name = "";
 	std::string SAVE_FILE_EXTENSION = ".sav";
 	// 0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
 	// 0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
 	// 0x200-0xFFF - Program ROM and work RAM
+
+	inline static uint16_t MEMORY_SIZE = 4096; //0x1000
 
 	inline static uint8_t font_addr_start = 0x000;
 	inline static uint8_t font_addr_end = 0x1FF;
@@ -58,7 +60,7 @@ private:
 		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 	};
 
-	uint8_t memory[4096] = {};
+	uint8_t memory[MEMORY_SIZE] = {};
 	uint8_t registers[16] = {};
 
 	// stack is used to remeber the current location before a jump operation is made
@@ -76,7 +78,10 @@ private:
 	uint12_t index_reg = {};
 	uint16_t opcode = 0;
 
-	uint12_t program_ctr = {program_start_addr};
+	uint12_t program_ctr = { program_start_addr };
 
 	uint8_t px_states[64 * 32] = {};
+
+	// used to figure out if we should be saving data from memory into a save state
+	uint16_t lowest_mem_addr_updated = 0xFFF;
 };

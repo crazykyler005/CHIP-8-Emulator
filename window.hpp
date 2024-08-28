@@ -1,7 +1,14 @@
-#include <cstdio>
-#include <stdint.h>
-// #include <GL/glew.h>
-#include <gtk/gtk.h>
+#include <gtkmm.h>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <memory>
+#include "screen.hpp"
+#include "menubar.hpp"
+
+
+// g++ `pkg-config --cflags gtkmm-4.0` -o test test2.cpp window.cpp `pkg-config --libs gtkmm-4.0`
+// g++ `pkg-config --cflags gtkmm-4.0` -o test test2.cpp screen.cpp menubar.hpp `pkg-config --libs gtkmm-4.0`
 
 enum class ColorScheme : uint8_t { // TODO: use a struct for storing RGB values
 	ORIGINAL=0,
@@ -9,23 +16,21 @@ enum class ColorScheme : uint8_t { // TODO: use a struct for storing RGB values
 	END
 };
 
-class Window {
-
+class Window : public Gtk::Window
+{
 public:
-	Window(GtkApplication* _app, size_t width, size_t height);
-	static void present(GtkApplication* app, gpointer user_data);
+	Window();
+	int get_native_width();
+	int get_native_height();
+	std::string default_title = "Chip-8 Emulator";
 
-	inline static GtkWidget* _window;
+protected:
+	Gtk::Box m_box;
+	MenuBar m_menubar;
+
+	Screen screen;
 
 private:
-	inline static uint8_t MAX_SAVE_LOAD_STATES = 4;
-	inline static uint8_t MAX_RESOLUTION_MAGNIFACTION = 4;
-
-	size_t _width = 0;
-	size_t _height = 0;
-
-	void add_menubar(GtkApplication* app);
-	void generate_menubar(GtkApplication* app);
-	// void update_color_scheme(ColorScheme scheme);
-	void resize_window(size_t width, size_t height);
+	int _native_width = 400;
+	int _native_height = 300;
 };

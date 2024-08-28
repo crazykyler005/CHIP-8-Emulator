@@ -216,9 +216,16 @@ void chip8::run_instruction() {
 				memory[index_reg.val + 1] = uint8_t(VX / 10) % 10;
 				memory[index_reg.val + 2] = (VX % 100) % 10;
 
+				if (index_reg.val < lowest_mem_addr_updated) {
+					lowest_mem_addr_updated = index_reg.val;
+				}
 			} else if (code == 0x55) {
 				for (uint8_t i = 0; i <= registers[VX_reg]; i++) {
 					memory[index_reg.val + i] = registers[i];
+				}
+
+				if (index_reg.val < lowest_mem_addr_updated) {
+					lowest_mem_addr_updated = index_reg.val;
 				}
 			} else if (code == 0x65) {
 				for (uint8_t i = 0; i <= registers[VX_reg]; i++) {
@@ -239,19 +246,34 @@ void chip8::run_instruction() {
 // - 2 byte index register
 // - 1 byte current stack size
 // - all stack elements from first to last added if stack size is not 0 (0 - 32 bytes)
-// - the state of each pixel on the screen represented in bits (pixels / 8 = 256)
-// - memory from 0x200 and onward (can be overwritten by program thus we need to store it) (4096 – 512 = 3584)
-bool chip8::save_program_state(std::string program_name, uint8_t state_number, uint32_t utc_timestamp) {
-	// TODO: add a CRC to the end of the file and check if it is valid when loading it
-
-	// 4 + 2 + 2 + 1 + 32 + 256 + 3584
-	static size_t MAX_SAVE_FILE_SIZE = 3881
+// - 256 bytes that hold the state of 8 pixels in each byte (pixels / 8 = 256)
+// - 2 byte lowest memory address update by the program/game
+// - x byte memory from lowest memory address overwritten and onward
+// - TODO: CRC add a CRC to the end of the file and check if it is valid when loading it
+bool chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp) {
 
 	if (program_name.size() == 0) {
 		return false;
 	}
 
-	std::vector<uint8_t> buffer(MAX_SAVE_FILE_SIZE);
+	// 4 + 2 + 2 + 1 + 256 (everything above excluding stack elements, CRC size)
+	static size_t MIN_SAVE_FILE_SIZE = 265;
+	size_t save_file_size = MIN_SAVE_FILE_SIZE + (stack.size() * sizeof(uint16_t));
+
+	// get last memory address with relevent data
+	uint8_t last_mem_addr = 0;
+	if (lowest_mem_addr_updated != (MEMORY_SIZE - 1)) {
+		for (size_t i = 4096 - 1; i >= 0x200; i--) {
+			if (memory[i] != 0) {
+				last_mem_addr = i;
+				break;
+			}
+		}
+
+		save_file_size += sizeof(uint16_t) + (last_mem_addr - lowest_mem_addr_updated + 1);
+	}
+
+	std::vector<uint8_t> buffer(save_file_size);
 	uint8_t* idx = buffer.data();
 
 	sys_put_be32(utc_timestamp, idx);
@@ -288,17 +310,22 @@ bool chip8::save_program_state(std::string program_name, uint8_t state_number, u
 		}
 	}
 
-	// get last memory address with relevent data
-	uint8_t last_mem_address = 0;
+	// get last memory address with relevant data
+	uint8_t last_mem_addr = 0;
 	for (size_t i = 4096 - 1; i >= 0x200; i--) {
 		if (memory[i] != 0) {
-			last_mem_address = i;
+			last_mem_addr = i;
 			break;
 		}
 	}
 
-	for (size_t i = 0x200; i <= last_mem_address; i++) {
-		buffer[idx++] = memory[i];
+	// only adding updated memory 
+	if (lowest_mem_addr_updated != 0xFFF) {
+		buffer[idx++] = lowest_mem_addr_updated;
+
+		for (size_t i = lowest_mem_addr_updated; i <= last_mem_addr; i++) {
+			buffer[idx++] = memory[i];
+		}
 	}
 
 	std::string sav_file_name = program_name + "_" + std::to_string(state_number) + ".sav";
@@ -341,7 +368,7 @@ void chip8::load_program_state(std::string file_name) {
 	uint8_t* buffer_ptr = buffer.data();
 	
 	// ignore timestamp
-	buffer_ptr += sizeof(uint32_t)
+	buffer_ptr += sizeof(uint32_t);
 
 	program_ctr.val = sys_get_be16(buffer_ptr);
 	buffer_ptr += sizeof(uint16_t);
@@ -373,6 +400,12 @@ void chip8::load_program_state(std::string file_name) {
 		px_states[i] = (buffer_ptr[0] & px_bit_mask) ? 1 : 0;
 	}
 
+	// if the rom never updated the memory then we don't try to overwrite the default memory values from the ROM
+	if (static_cast<uint16_t>(buffer_ptr - buffer.data()) == file_size) {
+		return;
+	}
+
+	memory_updated = true;
 	buffer_ptr++;
 
 	// if the amount of total bytes read from the buffer is less than the file size
