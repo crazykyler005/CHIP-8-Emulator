@@ -1,13 +1,20 @@
 
+#pragma once
+
 #include <stdint.h>
+#include <string>
+#include <cstdio>
+#include <vector>
 
 class chip8 {
 
-typedef struct __attribute__((__packed__)) uint12 { 
-	unsigned val:12 = 0;
-} uint12_t;
+// typedef struct __attribute__((__packed__)) uint12 { 
+// 	unsigned val:12 = 0;
+// } uint12_t;
 
 public:
+	chip8();
+
 	void reset();
 	void initialize();
 	void run_instruction();
@@ -15,7 +22,7 @@ public:
 	void draw(uint8_t& x, uint8_t& y, uint8_t pix_height);
 
 	void load_program(char* file_name);
-	void save_program_state(uint8_t state_number, uint32_t utc_timestamp);
+	bool save_program_state(uint8_t state_number, uint32_t utc_timestamp);
 	void load_program_state(std::string file_name);
 
 private:
@@ -27,18 +34,18 @@ private:
 
 	inline static uint16_t MEMORY_SIZE = 4096; //0x1000
 
-	inline static uint8_t font_addr_start = 0x000;
-	inline static uint8_t font_addr_end = 0x1FF;
+	inline static uint16_t font_addr_start = 0x000;
+	inline static uint16_t font_addr_end = 0x1FF;
 
-	inline static uint8_t call_stack_start = 0xEA0; // 0xEA0-0xEFF
-	inline static uint8_t call_stack_end = 0xEFF;
+	inline static uint16_t call_stack_start = 0xEA0; // 0xEA0-0xEFF
+	inline static uint16_t call_stack_end = 0xEFF;
 
-	inline static uint8_t refresh_display_addr_start = 0xF00;
-	inline static uint8_t refresh_display_addr_end = 0xFFF;
+	inline static uint16_t refresh_display_addr_start = 0xF00;
+	inline static uint16_t refresh_display_addr_end = 0xFFF;
 
 	// most programs written for the original system begin at memory location
 	// 0x200 because the interpreter occupied the first 512 bytes
-	inline static uint8_t program_start_addr = 0x200;
+	inline static uint16_t program_start_addr = 0x200;
 
 	inline static uint8_t fontset[80] =
 	{ 
@@ -60,25 +67,25 @@ private:
 		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 	};
 
-	uint8_t memory[MEMORY_SIZE] = {};
+	uint8_t memory[4096] = {};
 	uint8_t registers[16] = {};
 
 	// stack is used to remeber the current location before a jump operation is made
 	// the program counter gets stored in the stack
 
 	// stack
-	inline static MAX_STACK_SIZE = 16;
-	std::vector<uint12_t> stack;
+	inline static size_t MAX_STACK_SIZE = 16;
+	std::vector<uint16_t> stack;
 	// uint12_t stack[16] = {};
 
 	// stack point may not be necessary if I use a vector size I can just 
 	// reference the last program_ctr value added
 	//uint8_t stack_ptr = 0;
 
-	uint12_t index_reg = {};
+	uint16_t index_reg = {};
 	uint16_t opcode = 0;
 
-	uint12_t program_ctr = { program_start_addr };
+	uint16_t program_ctr = program_start_addr;
 
 	uint8_t px_states[64 * 32] = {};
 

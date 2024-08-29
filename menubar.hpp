@@ -1,12 +1,15 @@
+#pragma once
+
 #include <gtkmm.h>
-#include <vector>
+// #include <vector>
+// #include "window.hpp"
 
 
 class MenuBar : public Gtk::PopoverMenuBar {
 
 public:
-	inline static uint8_t MAX_SAVE_LOAD_STATES = 5;
-	inline static uint8_t MAX_RESOLUTION_MAGNIFACTION = 4;
+	inline static int MAX_SAVE_LOAD_STATES = 4;
+	inline static int MAX_RESOLUTION_MAGNIFACTION = 4;
 
 	void generate();
 
@@ -26,4 +29,7 @@ private:
 	int _native_width = 400;
 	std::string _default_title = "test";
 	Gtk::Window* _parent_window;
+
+	// std::vector<Glib::RefPtr<Gio::MenuItem>> save_menu_items;
+	// std::vector<Glib::RefPtr<Gio::MenuItem>> load_menu_items;
 };

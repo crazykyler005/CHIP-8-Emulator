@@ -1,3 +1,5 @@
+#pragma once
+
 #include <gtkmm.h>
 #include <iostream>
 #include <string>
@@ -5,10 +7,6 @@
 #include <memory>
 #include "screen.hpp"
 #include "menubar.hpp"
-
-
-// g++ `pkg-config --cflags gtkmm-4.0` -o test test2.cpp window.cpp `pkg-config --libs gtkmm-4.0`
-// g++ `pkg-config --cflags gtkmm-4.0` -o test test2.cpp screen.cpp menubar.hpp `pkg-config --libs gtkmm-4.0`
 
 enum class ColorScheme : uint8_t { // TODO: use a struct for storing RGB values
 	ORIGINAL=0,
@@ -32,5 +30,6 @@ protected:
 
 private:
 	int _native_width = 400;
-	int _native_height = 300;
+	int _native_screen_height = 300;
+	int _native_menubar_height = 25;
 };

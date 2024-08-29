@@ -1,19 +1,19 @@
-#include <cstdio>
-#include <cstring>
 
-#include <chip8.hpp>
+#include "chip8.hpp"
+#include "helper_functions.hpp"
+#include "byteorder.h"
+
 #include <random>
 #include <stdlib.h>
 #include <algorithm>
 #include <iterator>
 #include <filesystem>
-#include "helper_functions.hpp"
-#include "byteorder.h"
+#include <cstring>
 
 // implement in different class?
-static uint8_t key_pressed() {}
+static uint8_t key_pressed() { return 1; }
 
-void chip8::draw(uint8_t& x, uint8_t& y, uint8_t pix_height) {}
+void chip8::draw(uint8_t& x, uint8_t& y, uint8_t pix_height) { return; }
 
 chip8::chip8() {
 	// loading fountset into the designated position in memory (0-80)
@@ -23,7 +23,7 @@ chip8::chip8() {
 void chip8::reset() {
 	program_ctr = program_start_addr;
 	opcode = 0;
-	index_reg.val = 0;
+	index_reg = 0;
 	stack.clear();
 	// stack_ptr = 0;
 	memset(registers, 0, sizeof(registers));
@@ -31,7 +31,7 @@ void chip8::reset() {
 	// Clear display
 	// reset_display()
 	// Clear stack. May not work with uint12_t struct
-	memset(stack, 0, sizeof(stack)/sizeof(stack[0]));
+	memset(stack.data(), 0, sizeof(stack)/sizeof(stack[0]));
 	// Clear registers V0-VF
 	memset(registers, 0, sizeof(registers));
 }
@@ -59,17 +59,20 @@ void chip8::load_program(char* file_name) {
 
 void chip8::run_instruction() {
 
+	uint8_t VX_reg = (opcode >> 8) & 0xF; // 3rd nibble
+	uint8_t VY_reg = (opcode >> 4) & 0xF; // 2nd nibble
+
+	uint8_t sub_opcode = 0;
+
 	switch (opcode & 0xF000)
 	{
-		uint8_t VX_reg = (opcode >> 8) & 0xF; // 3rd nibble
-		uint8_t VY_reg = (opcode >> 4) & 0xF; // 2nd nibble
-
 		case 0x0000:
 			if (opcode == 0x00E0) {
 				// clear screen
 			} else if (opcode == 0x00EE) {
 				// program_ctr = stack[stack_ptr];
-				program_ctr = stack.pop_back();
+				program_ctr = stack.back();
+				stack.pop_back();
 				// return from subroutine
 			} else if (opcode > 0xFF) {
 				printf("Unsupported opcode");
@@ -83,7 +86,7 @@ void chip8::run_instruction() {
 
 		case 0x2000: // 2NNN
 			// call subroutine at 0NNN
-			// stack[stack_ptr].val = program_ctr;
+			// stack[stack_ptr] = program_ctr;
 			stack.push_back(program_ctr);
 			program_ctr = 0x0FFF & opcode;
 			break;
@@ -126,25 +129,25 @@ void chip8::run_instruction() {
 			// NOTE: 8XY3, 8XY6, 8XY7 and 8XYE were not documented in the original CHIP-8
 			// specification so they may never end up being used
 
-			uint8_t code = opcode & 0xF; //arithmetic operation
+			sub_opcode = opcode & 0xF; //arithmetic operation
 
-			if (code == 0) {
+			if (sub_opcode == 0) {
 				registers[VX_reg] = registers[VY_reg];
-			} else if (code == 1) {
+			} else if (sub_opcode == 1) {
 				registers[VX_reg] |= registers[VY_reg];
-			} else if (code == 2) {
+			} else if (sub_opcode == 2) {
 				registers[VX_reg] &= registers[VY_reg];
-			} else if (code == 3) {
+			} else if (sub_opcode == 3) {
 				registers[VX_reg] ^= registers[VY_reg];
-			} else if (code == 4) {
+			} else if (sub_opcode == 4) {
 				registers[VX_reg] += registers[VY_reg];
-			} else if (code == 5) {
+			} else if (sub_opcode == 5) {
 				registers[VX_reg] -= registers[VY_reg];
-			} else if (code == 6) {
+			} else if (sub_opcode == 6) {
 				registers[VX_reg] >>= 1;
-			} else if (code == 7) {
+			} else if (sub_opcode == 7) {
 				registers[VX_reg] = registers[VY_reg] - registers[VX_reg];
-			} else if (code == 0xE) {
+			} else if (sub_opcode == 0xE) {
 				registers[VX_reg] = 1; 
 			}
 			break;
@@ -158,7 +161,7 @@ void chip8::run_instruction() {
 
 		case 0xA000:// I = NNN
 			// Sets I to the address NNN
-			index_reg.val = opcode & 0x0FFF;
+			index_reg = opcode & 0x0FFF;
 			break;
 
 		case 0xB000: // PC = V0 + NNN
@@ -190,46 +193,46 @@ void chip8::run_instruction() {
 			break;
 
 		case 0xF000:
-			uint8_t code = opcode & 0xFF;
+			sub_opcode = opcode & 0xFF;
 
 			// Sets the delay timer to VX
-			if (code == 0x15) {
+			if (sub_opcode == 0x15) {
 				// delay_timer(registers[VX_reg]);
 
 			// Sets the sound timer to VX
-			} else if (code == 0x18) {
+			} else if (sub_opcode == 0x18) {
 				// sound_timer(registers[VX_reg]);
 
 			// Adds VX to I. VF is not affected
-			} else if (code == 0x1E) {
-				index_reg.val += registers[VX_reg];
+			} else if (sub_opcode == 0x1E) {
+				index_reg += registers[VX_reg];
 
 			// Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font
-			} else if (code == 0x29) {
-				// index_reg.val = sprite_addr[registers[VX_reg]];
+			} else if (sub_opcode == 0x29) {
+				// index_reg = sprite_addr[registers[VX_reg]];
 
 			// Stores the binary-coded decimal representation of VX, with the hundreds digit in memory at location in I, 
 			// the tens digit at location I+1, and the ones digit at location I+2
-			} else if (code == 0x33) {
+			} else if (sub_opcode == 0x33) {
 				uint8_t& VX = registers[VX_reg];
-				memory[index_reg.val] = uint8_t(VX / 100);
-				memory[index_reg.val + 1] = uint8_t(VX / 10) % 10;
-				memory[index_reg.val + 2] = (VX % 100) % 10;
+				memory[index_reg] = uint8_t(VX / 100);
+				memory[index_reg + 1] = uint8_t(VX / 10) % 10;
+				memory[index_reg + 2] = (VX % 100) % 10;
 
-				if (index_reg.val < lowest_mem_addr_updated) {
-					lowest_mem_addr_updated = index_reg.val;
+				if (index_reg < lowest_mem_addr_updated) {
+					lowest_mem_addr_updated = index_reg;
 				}
-			} else if (code == 0x55) {
+			} else if (sub_opcode == 0x55) {
 				for (uint8_t i = 0; i <= registers[VX_reg]; i++) {
-					memory[index_reg.val + i] = registers[i];
+					memory[index_reg + i] = registers[i];
 				}
 
-				if (index_reg.val < lowest_mem_addr_updated) {
-					lowest_mem_addr_updated = index_reg.val;
+				if (index_reg < lowest_mem_addr_updated) {
+					lowest_mem_addr_updated = index_reg;
 				}
-			} else if (code == 0x65) {
+			} else if (sub_opcode == 0x65) {
 				for (uint8_t i = 0; i <= registers[VX_reg]; i++) {
-					registers[i] = memory[index_reg.val + i];
+					registers[i] = memory[index_reg + i];
 				}
 			}
 			break;
@@ -249,7 +252,7 @@ void chip8::run_instruction() {
 // - 256 bytes that hold the state of 8 pixels in each byte (pixels / 8 = 256)
 // - 2 byte lowest memory address update by the program/game
 // - x byte memory from lowest memory address overwritten and onward
-// - TODO: CRC add a CRC to the end of the file and check if it is valid when loading it
+// - TODO: add a CRC to the end of the file and check if it is valid when loading it
 bool chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp) {
 
 	if (program_name.size() == 0) {
@@ -279,18 +282,18 @@ bool chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp) {
 	sys_put_be32(utc_timestamp, idx);
 	idx += sizeof(utc_timestamp);
 
-	auto program_ctr_16 = static_cast<uint16_t>(program_ctr.val)
+	auto program_ctr_16 = static_cast<uint16_t>(program_ctr);
 	sys_put_be16(program_ctr_16, idx);
 	idx += sizeof(program_ctr_16);
 
-	auto index_reg_16 = static_cast<uint16_t>(program_ctr.val)
+	auto index_reg_16 = static_cast<uint16_t>(program_ctr);
 	sys_put_be16(index_reg_16, idx);
 	idx += sizeof(index_reg_16);
 
-	buffer[idx++] = static_cast<uint8_t>(stack.size());
+	idx++[0] = static_cast<uint8_t>(stack.size());
 
 	for (auto& prog_ctr : stack) {
-		auto prog_ctr_16 = static_cast<uint16_t>(prog_ctr)
+		auto prog_ctr_16 = static_cast<uint16_t>(prog_ctr);
 		sys_put_be16(prog_ctr_16, idx);
 		idx += sizeof(prog_ctr_16);
 	}
@@ -305,33 +308,24 @@ bool chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp) {
 		}
 
 		if (px_bit_mask & (1 << 7)) {
-			buffer[idx++] = px_byte;
+			idx++[0] = px_byte;
 			px_byte = 0;
-		}
-	}
-
-	// get last memory address with relevant data
-	uint8_t last_mem_addr = 0;
-	for (size_t i = 4096 - 1; i >= 0x200; i--) {
-		if (memory[i] != 0) {
-			last_mem_addr = i;
-			break;
 		}
 	}
 
 	// only adding updated memory 
 	if (lowest_mem_addr_updated != 0xFFF) {
-		buffer[idx++] = lowest_mem_addr_updated;
+		idx++[0] = lowest_mem_addr_updated;
 
 		for (size_t i = lowest_mem_addr_updated; i <= last_mem_addr; i++) {
-			buffer[idx++] = memory[i];
+			idx++[0] = memory[i];
 		}
 	}
 
 	std::string sav_file_name = program_name + "_" + std::to_string(state_number) + ".sav";
 
 	// will overwrite the file if it already exists
-	auto file = fopen(sav_file_name, "w");
+	auto file = fopen(sav_file_name.c_str(), "w");
 
 	fprintf(file, "%s", buffer.data());
 	fclose(file);
@@ -345,14 +339,14 @@ void chip8::load_program_state(std::string file_name) {
 		return;
 	}
 
-	auto file = fopen(file_name, "r");
+	auto file = fopen(file_name.c_str(), "r");
 
 	if (file == NULL) {
 		return;
 	}
 
 	fseek(file, 0L, SEEK_END);
-	file_size = ftell(file);
+	auto file_size = ftell(file);
 
 	// seek to beginning of file
 	fseek(file, 0L, SEEK_SET);
@@ -370,10 +364,10 @@ void chip8::load_program_state(std::string file_name) {
 	// ignore timestamp
 	buffer_ptr += sizeof(uint32_t);
 
-	program_ctr.val = sys_get_be16(buffer_ptr);
+	program_ctr = sys_get_be16(buffer_ptr);
 	buffer_ptr += sizeof(uint16_t);
 
-	index_reg.val = sys_get_be16(buffer_ptr);
+	index_reg = sys_get_be16(buffer_ptr);
 	buffer_ptr += sizeof(uint16_t);
 
 	auto stack_size = buffer_ptr[0];
@@ -383,7 +377,7 @@ void chip8::load_program_state(std::string file_name) {
 	stack.reserve(stack_size);
 
 	for (uint8_t i = 0; i < stack_size; i++) {
-		uint12_t ptr_ctr = { sys_get_be16(buffer_ptr) };
+		uint16_t ptr_ctr = sys_get_be16(buffer_ptr);
 		stack.emplace_back(std::move(ptr_ctr));
 
 		buffer_ptr += sizeof(uint16_t);
@@ -405,7 +399,6 @@ void chip8::load_program_state(std::string file_name) {
 		return;
 	}
 
-	memory_updated = true;
 	buffer_ptr++;
 
 	// if the amount of total bytes read from the buffer is less than the file size

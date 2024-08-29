@@ -1,5 +1,6 @@
 #include "menubar.hpp"
 #include "helper_functions.hpp"
+
 #include <cstdio>
 #include <iostream>
 
@@ -33,12 +34,13 @@ void MenuBar::generate() {
 
 	for (int i = 0; i < 4; i++) {
 		auto action_name = "save" + std::to_string(i);
+		
+		auto save_item = Gio::MenuItem::create("_Save State " + std::to_string(i), "app." + action_name);
+		save_state_submenu->append_item(save_item);
 
-		m_refActionGroup->add_action(action_name, [this, i]() { 
+		m_refActionGroup->add_action(action_name, [this, i, save_item]() { 
 			this->on_menu_state_save(i);
 		});
-
-		save_state_submenu->append("_Save State " + std::to_string(i), "app." + action_name);
 	}
 
 	state_submenu->append_submenu("_Save States", save_state_submenu);
@@ -155,6 +157,16 @@ void MenuBar::on_menu_file_quit()
 void MenuBar::on_menu_state_save(int i)
 {
 	std::cout << "States -> Save file " + std::to_string(i) << std::endl;
+	// auto state_idx = static_cast<uint8_t>(i);
+	// auto utc = utc_time_in_seconds();
+
+	// save program state into file
+	// chip8.save_program_state(state_idx, utc);
+
+	// save_menu_items[i]->set_label("test");
+
+	// TODO: figure out how to update the label of the item after it's been added to the menu
+	// menu_item->set_label("Save State " + std::to_string(state_idx) + " - " + get_time_str(true, utc)).c_str());
 }
 
 void MenuBar::on_menu_state_load(int i)

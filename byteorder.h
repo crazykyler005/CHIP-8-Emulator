@@ -9,8 +9,8 @@
  */
 
 #include <stddef.h>
-#include <sys/__assert.h>
-#include <toolchain.h>
+// #include <sys/__assert.h>
+// #include <toolchain.h>
 
 /**
  *  @brief Put a 16-bit integer as big-endian to arbitrary location.
@@ -310,35 +310,6 @@ static inline uint64_t sys_get_le48(const uint8_t src[6])
 static inline uint64_t sys_get_le64(const uint8_t src[8])
 {
 	return ((uint64_t)sys_get_le32(&src[4]) << 32) | sys_get_le32(&src[0]);
-}
-
-/**
- * @brief Swap one buffer content into another
- *
- * Copy the content of src buffer into dst buffer in reversed order,
- * i.e.: src[n] will be put in dst[end-n]
- * Where n is an index and 'end' the last index in both arrays.
- * The 2 memory pointers must be pointing to different areas, and have
- * a minimum size of given length.
- *
- * @param dst A valid pointer on a memory area where to copy the data in
- * @param src A valid pointer on a memory area where to copy the data from
- * @param length Size of both dst and src memory areas
- */
-static inline void sys_memcpy_swap(void *dst, const void *src, size_t length)
-{
-	uint8_t *pdst = (uint8_t *)dst;
-	const uint8_t *psrc = (const uint8_t *)src;
-
-	__ASSERT(((psrc < pdst && (psrc + length) <= pdst) ||
-		  (psrc > pdst && (pdst + length) <= psrc)),
-		 "Source and destination buffers must not overlap");
-
-	psrc += length - 1;
-
-	for (; length > 0; length--) {
-		*pdst++ = *psrc--;
-	}
 }
 
 /**
