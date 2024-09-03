@@ -19,11 +19,13 @@ public:
 	void initialize();
 	void run_instruction();
 	// uint8_t key_pressed();
-	void draw(uint8_t& x, uint8_t& y, uint8_t pix_height);
+	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height);
 
 	void load_program(char* file_name);
 	bool save_program_state(uint8_t state_number, uint32_t utc_timestamp);
 	void load_program_state(std::string file_name);
+
+	bool draw_flag = false;
 
 private:
 	std::string program_name = "";
@@ -67,8 +69,11 @@ private:
 		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 	};
 
+	inline static uint8_t sprite_px_width = 8;
+
 	uint8_t memory[4096] = {};
 	uint8_t registers[16] = {};
+	bool keys_pressed[16] = {};
 
 	// stack is used to remeber the current location before a jump operation is made
 	// the program counter gets stored in the stack
@@ -82,13 +87,23 @@ private:
 	// reference the last program_ctr value added
 	//uint8_t stack_ptr = 0;
 
-	uint16_t index_reg = {};
+	uint16_t index_reg = 0;
 	uint16_t opcode = 0;
 
 	uint16_t program_ctr = program_start_addr;
 
+	// 64 pixels width by 32 pixels height
+	uint8_t native_width = 64;
+	uint8_t native_height = 64;
+
 	uint8_t px_states[64 * 32] = {};
+	// TODO: optimise how pixel states are stored by changing the above array to the following 
+	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable
+	// uint64_t px_states[32] = {};
 
 	// used to figure out if we should be saving data from memory into a save state
 	uint16_t lowest_mem_addr_updated = 0xFFF;
+
+	uint8_t delay_timer = 0;
+	uint8_t sound_timer = 0;
 };

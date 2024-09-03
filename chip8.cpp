@@ -10,14 +10,68 @@
 #include <filesystem>
 #include <cstring>
 
+chip8::chip8() {
+	// loading fontset into the designated position in memory (0-80)
+	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));
+}
+
 // implement in different class?
 static uint8_t key_pressed() { return 1; }
 
-void chip8::draw(uint8_t& x, uint8_t& y, uint8_t pix_height) { return; }
+void chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
+	// Reset register VF
+	registers[0xF] = 0;
 
-chip8::chip8() {
-	// loading fountset into the designated position in memory (0-80)
-	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));
+	for (uint8_t yline = 0; yline < pix_height; yline++)
+	{
+		// Fetch the pixel value from the memory starting at location I
+		uint8_t _8px_sprite = memory[index_reg + yline];
+
+		// Loop over 8 bits of one row
+		for (int xline = 0; xline < 8; xline++) {
+			// Check if the current evaluated pixel is set to 1 (note that 0x80 >> xline scan through the byte, one bit at the time)
+			if ((_8px_sprite & (0x80 >> xline)) != 0) {
+				// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
+				if (px_states[(x + xline + ((y + yline) * native_width))] == 1) {
+					registers[0xF] = 1;
+				}
+
+				// Set the pixel value by using XOR
+				px_states[x + xline + ((y + yline) * native_width)] ^= 1;
+			}
+		}
+	}
+
+	// pxiel or bit at starting position
+	// uint64_t px_bit_mask = 0xF << (63 - x);
+	// for (uint8_t yline = 0; yline < pix_height; yline++)
+	// {
+	// 	// Fetch the pixel value from memory starting at location I
+	// 	uint8_t _8px_sprite = memory[index_reg + yline];
+		
+	// 	for (int xline = 0; xline < 8; xline++) {
+	// 		if ((pixel & (0x80 >> xline)) != 0) {
+	// 	}
+
+	// 	// Loop over 8 bits of one row
+	// 	for (int xline = 0; xline < 8; xline++) {
+	// 		// Check if the current evaluated pixel is set to 1 (note that 0x80 >> xline scan through the byte, one bit at the time)
+	// 		if ((pixel & (0x80 >> xline)) != 0) {
+	// 			// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
+	// 			if (gfx[(y + yline)] & (static_cast<uint64_t>(_8px_sprite) << ((63 - x) + 8)) == 1) {
+	// 				registers[0xF] = 1;
+	// 			}
+
+	// 			// Set the pixel value by using XOR
+	// 			gfx[x + xline + ((y + yline) * native_width)] ^= 1;
+	// 		}
+	// 	}
+	// }
+
+	// We changed our gfx[] array and thus need to update the screen.
+	draw_flag = true;
+	
+	return;
 }
 
 void chip8::reset() {
@@ -139,16 +193,31 @@ void chip8::run_instruction() {
 				registers[VX_reg] &= registers[VY_reg];
 			} else if (sub_opcode == 3) {
 				registers[VX_reg] ^= registers[VY_reg];
+
+			// Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not.
 			} else if (sub_opcode == 4) {
 				registers[VX_reg] += registers[VY_reg];
+				registers[0xF] = (registers[VY_reg] > (0xFF - registers[VX_reg])) ? 1 : 0;
+
+			// VY is subtracted from VX. VF is set to 0 when there's an underflow, and 1 when there is not.
 			} else if (sub_opcode == 5) {
+				registers[0xF] = (registers[VY_reg] > registers[VX_reg]) ? 0 : 1;
 				registers[VX_reg] -= registers[VY_reg];
+
+			// Shifts VX to the right by 1, then stores the least significant bit of VX prior to the shift into VF.
 			} else if (sub_opcode == 6) {
+				registers[0xF] = registers[VX_reg] & 0x1;
 				registers[VX_reg] >>= 1;
+
+			// Sets VX to VY minus VX. VF is set to 0 when there's an underflow, and 1 when there is not
 			} else if (sub_opcode == 7) {
+				registers[0xF] = (registers[VX_reg] > registers[VY_reg]) ? 0 : 1;
 				registers[VX_reg] = registers[VY_reg] - registers[VX_reg];
+
+			// Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset.
 			} else if (sub_opcode == 0xE) {
-				registers[VX_reg] = 1; 
+				registers[0xF] = (registers[VX_reg] & 0x80) ? 1 : 0;
+				registers[VX_reg] <<= 1;
 			}
 			break;
 
@@ -178,16 +247,16 @@ void chip8::run_instruction() {
 			// Each row of 8 pixels is read as bit-coded starting from memory location I; 
 			// I value does not change after the execution of this instruction. As described above, VF is set
 			// to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and to 0 if that does not happen
-			draw(registers[VX_reg], registers[VY_reg], static_cast<uint8_t>(opcode & 0xF));
+			update_gfx(registers[VX_reg], registers[VY_reg], static_cast<uint8_t>(opcode & 0xF));
 			break;
 
 		case 0xE000:
 			// Skips the next instruction if the key stored in VX is pressed (usually the next instruction is a jump to skip a code block)
-			if (((opcode & 0xFF) == 0x9E) && (key_pressed() == registers[VX_reg])) {
+			if (((opcode & 0xFF) == 0x9E) && (keys_pressed[registers[VX_reg]] == true)) {
 				program_ctr += 2;
 			}
 			// Skips the next instruction if the key stored in VX is not pressed (usually the next instruction is a jump to skip a code block)
-			else if (((opcode & 0xFF) == 0xA1) && (key_pressed() == registers[VX_reg])) {
+			else if (((opcode & 0xFF) == 0xA1) && (keys_pressed[registers[VX_reg]] == false)) {
 				program_ctr += 2;
 			}
 			break;
@@ -195,21 +264,34 @@ void chip8::run_instruction() {
 		case 0xF000:
 			sub_opcode = opcode & 0xFF;
 
+			// Sets VX to the value of the delay timer.[24]
+			if (sub_opcode == 0x07) {
+				registers[VX_reg] = delay_timer;
+			}
+
+			// A key press is awaited, and then stored in VX (blocking operation, all instruction halted until next key event)
+			if (sub_opcode == 0x0A) {
+				// registers[VX_reg] = await_key_press();
+			}
+
 			// Sets the delay timer to VX
 			if (sub_opcode == 0x15) {
-				// delay_timer(registers[VX_reg]);
+				delay_timer = registers[VX_reg];
 
 			// Sets the sound timer to VX
 			} else if (sub_opcode == 0x18) {
-				// sound_timer(registers[VX_reg]);
+				sound_timer = registers[VX_reg];
 
-			// Adds VX to I. VF is not affected
+			// Adds VX to I. The CHIP-8 interpreter for the Commodore Amiga sets VF to 1 when an overflow occurs from this.
+			// There is one known game that depends on this happening and at least one that doesn't.
 			} else if (sub_opcode == 0x1E) {
 				index_reg += registers[VX_reg];
+				// TODO: implement a setting from the menubar that enables this functionallity
+				// registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
 
 			// Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font
 			} else if (sub_opcode == 0x29) {
-				// index_reg = sprite_addr[registers[VX_reg]];
+				index_reg = registers[VX_reg] * 5;
 
 			// Stores the binary-coded decimal representation of VX, with the hundreds digit in memory at location in I, 
 			// the tens digit at location I+1, and the ones digit at location I+2
@@ -222,6 +304,9 @@ void chip8::run_instruction() {
 				if (index_reg < lowest_mem_addr_updated) {
 					lowest_mem_addr_updated = index_reg;
 				}
+
+			// Stores from V0 to VX (including VX) in memory, starting at address I. The offset
+			// from I is increased by 1 for each value written, but I itself is left unmodified.
 			} else if (sub_opcode == 0x55) {
 				for (uint8_t i = 0; i <= registers[VX_reg]; i++) {
 					memory[index_reg + i] = registers[i];
@@ -230,6 +315,9 @@ void chip8::run_instruction() {
 				if (index_reg < lowest_mem_addr_updated) {
 					lowest_mem_addr_updated = index_reg;
 				}
+
+			// Fills from V0 to VX (including VX) with values from memory, starting at address I.
+			// The offset from I is increased by 1 for each value read, but I itself is left unmodified.
 			} else if (sub_opcode == 0x65) {
 				for (uint8_t i = 0; i <= registers[VX_reg]; i++) {
 					registers[i] = memory[index_reg + i];
@@ -240,6 +328,15 @@ void chip8::run_instruction() {
 		default:
 			break;
 	}
+
+	// Update timers
+    if (delay_timer > 0)
+        --delay_timer;
+
+    if (sound_timer > 0)
+        if(sound_timer == 1);
+            // TODO: Implement sound
+        --sound_timer;
 }
 
 
