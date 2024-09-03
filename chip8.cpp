@@ -10,7 +10,9 @@
 #include <filesystem>
 #include <cstring>
 
-chip8::chip8() {
+static std::string program_directory = "";
+
+Chip8::Chip8() {
 	// loading fontset into the designated position in memory (0-80)
 	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));
 }
@@ -18,7 +20,7 @@ chip8::chip8() {
 // implement in different class?
 static uint8_t key_pressed() { return 1; }
 
-void chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
+void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 	// Reset register VF
 	registers[0xF] = 0;
 
@@ -28,7 +30,7 @@ void chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 		uint8_t _8px_sprite = memory[index_reg + yline];
 
 		// Loop over 8 bits of one row
-		for (int xline = 0; xline < 8; xline++) {
+		for (int xline = 0; xline < SPRITE_PX_WIDTH; xline++) {
 			// Check if the current evaluated pixel is set to 1 (note that 0x80 >> xline scan through the byte, one bit at the time)
 			if ((_8px_sprite & (0x80 >> xline)) != 0) {
 				// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
@@ -74,7 +76,7 @@ void chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 	return;
 }
 
-void chip8::reset() {
+void Chip8::reset() {
 	program_ctr = program_start_addr;
 	opcode = 0;
 	index_reg = 0;
@@ -90,17 +92,17 @@ void chip8::reset() {
 	memset(registers, 0, sizeof(registers));
 }
 
-void chip8::initialize() {
+void Chip8::initialize() {
 	reset();
 
 	// Clear most of the memory
 	memset(memory + sizeof(fontset), 0, sizeof(memory) - sizeof(fontset));
 }
 
-void chip8::load_program(char* file_name) {
+void Chip8::load_program(std::string directory, std::string file_name) {
 	reset();
 
-	auto file = fopen(file_name, "r");
+	auto file = fopen((directory + file_name).c_str(), "r");
 
 	if (file == NULL) {
 		return;
@@ -111,7 +113,7 @@ void chip8::load_program(char* file_name) {
 	}
 }
 
-void chip8::run_instruction() {
+void Chip8::run_instruction() {
 
 	uint8_t VX_reg = (opcode >> 8) & 0xF; // 3rd nibble
 	uint8_t VY_reg = (opcode >> 4) & 0xF; // 2nd nibble
@@ -350,8 +352,11 @@ void chip8::run_instruction() {
 // - 2 byte lowest memory address update by the program/game
 // - x byte memory from lowest memory address overwritten and onward
 // - TODO: add a CRC to the end of the file and check if it is valid when loading it
-bool chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp) {
+bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp) {
 
+	printf("test\n");
+
+	return false;
 	if (program_name.size() == 0) {
 		return false;
 	}
@@ -430,7 +435,7 @@ bool chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp) {
 	return true;
 }
 
-void chip8::load_program_state(std::string file_name) {
+void Chip8::load_program_state(std::string file_name) {
 
 	if (file_name.size() == 0) {
 		return;

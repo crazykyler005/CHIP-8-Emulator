@@ -9,7 +9,7 @@ uint32_t utc_time_in_seconds()
 
 std::string get_time_str(bool in_local_time, time_t utc_seconds) {
 
-	if (utc_second == 0) {
+	if (utc_seconds == 0) {
 		utc_seconds = utc_time_in_seconds();
 	}
 
@@ -24,7 +24,7 @@ std::string get_time_str(bool in_local_time, time_t utc_seconds) {
 
 	// Format local time as string
 	char buffer[20];
-	strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &local_tm);
+	strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &time_struct);
 
 	return std::string(buffer);
 }

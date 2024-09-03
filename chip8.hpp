@@ -6,14 +6,14 @@
 #include <cstdio>
 #include <vector>
 
-class chip8 {
+class Chip8 {
 
 // typedef struct __attribute__((__packed__)) uint12 { 
 // 	unsigned val:12 = 0;
 // } uint12_t;
 
 public:
-	chip8();
+	Chip8();
 
 	void reset();
 	void initialize();
@@ -21,11 +21,23 @@ public:
 	// uint8_t key_pressed();
 	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height);
 
-	void load_program(char* file_name);
+	void load_program(std::string directory, std::string file_name);
 	bool save_program_state(uint8_t state_number, uint32_t utc_timestamp);
 	void load_program_state(std::string file_name);
 
+
+	// 64 pixels width by 32 pixels height
+	inline static uint8_t native_width = 64;
+	inline static uint8_t native_height = 32;
+
+	bool keys_pressed[16] = {};
 	bool draw_flag = false;
+	bool is_paused = false;
+
+	// TODO: optimise how pixel states are stored by changing the above array to the following 
+	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable
+	// uint64_t px_states[32] = {};
+	uint8_t px_states[64 * 32] = {};
 
 private:
 	std::string program_name = "";
@@ -69,11 +81,10 @@ private:
 		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 	};
 
-	inline static uint8_t sprite_px_width = 8;
+	inline static uint8_t SPRITE_PX_WIDTH = 8;
 
 	uint8_t memory[4096] = {};
 	uint8_t registers[16] = {};
-	bool keys_pressed[16] = {};
 
 	// stack is used to remeber the current location before a jump operation is made
 	// the program counter gets stored in the stack
@@ -91,15 +102,6 @@ private:
 	uint16_t opcode = 0;
 
 	uint16_t program_ctr = program_start_addr;
-
-	// 64 pixels width by 32 pixels height
-	uint8_t native_width = 64;
-	uint8_t native_height = 64;
-
-	uint8_t px_states[64 * 32] = {};
-	// TODO: optimise how pixel states are stored by changing the above array to the following 
-	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable
-	// uint64_t px_states[32] = {};
 
 	// used to figure out if we should be saving data from memory into a save state
 	uint16_t lowest_mem_addr_updated = 0xFFF;

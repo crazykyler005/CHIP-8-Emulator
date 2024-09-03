@@ -64,7 +64,7 @@ void MenuBar::generate() {
 
 	// generating color scheme submenu to settings menu
 	auto resolution_submenu = Gio::Menu::create();
-	for (int i = 1; i < 5; i++) {
+	for (int i = 2; i < 9; i+=2) {
 		auto action_name = "x" + std::to_string(i);
 
 		m_refActionGroup->add_action(action_name, [this, i]() { 
@@ -137,6 +137,8 @@ void MenuBar::on_file_dialog_finish(const Glib::RefPtr<Gio::AsyncResult>& result
 		std::cout << "File path: " <<  file_path << std::endl;
 
 		_parent_window->set_title(_default_title + " - " + filename);
+
+		_chip8_ptr->load_program(file_path, filename);
 	}
 	catch (const Gtk::DialogError& err)
 	{
@@ -157,6 +159,10 @@ void MenuBar::on_menu_file_quit()
 void MenuBar::on_menu_state_save(int i)
 {
 	std::cout << "States -> Save file " + std::to_string(i) << std::endl;
+
+	// need to pause the program here, generate a save state, then resume the application
+	auto utc_timestamp = utc_time_in_seconds();
+	_chip8_ptr->save_program_state(i, utc_timestamp);
 	// auto state_idx = static_cast<uint8_t>(i);
 	// auto utc = utc_time_in_seconds();
 
@@ -171,17 +177,23 @@ void MenuBar::on_menu_state_save(int i)
 
 void MenuBar::on_menu_state_load(int i)
 {
+	// _chip8_ptr->load_program_state(load_menu_items[i]->get_label());
 	std::cout << "States -> Load file " + std::to_string(i) << std::endl;
 }
 
 void MenuBar::on_menu_state_pause()
 {
+	_chip8_ptr->is_paused = true;
 	std::cout << "States -> Pause Program";
 }
 
 void MenuBar::on_menu_update_resolution(int i)
 {
-	_parent_window->set_default_size(_native_width * i, _native_height * i);
+	auto current_screen_height = _parent_window->get_child()->get_height() - _height;
+	auto current_titlebar_height = _parent_window->get_height() - (current_screen_height + _height);
+	auto updated_screen_height = Chip8::native_height * i;
+
+	_parent_window->set_default_size(Chip8::native_width * i, updated_screen_height + _height + current_titlebar_height);
 }
 
 // state menu callbacks

@@ -1,4 +1,4 @@
 #include <ctime>
 
-time_t utc_time_in_seconds(); //Returns UTC in Seconds
+uint32_t utc_time_in_seconds(); //Returns UTC in Seconds
 std::string get_time_str(bool in_local_time, time_t utc_seconds = 0);

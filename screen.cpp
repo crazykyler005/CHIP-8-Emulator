@@ -54,3 +54,21 @@ void Screen::on_draw(const Cairo::RefPtr<Cairo::Context>& cr, int width, int hei
 	cr->line_to(width, yc);
 	cr->stroke();
 }
+
+// void update_display(uint8_t* pixel_states, uint8_t& native_width, uint8_t& native_height) {
+// 	if ((native_width * native_height) != sizeof(pixel_states)) {
+// 		return;
+// 	}
+
+// 	auto pixel_height = get_height() / native_height;
+// 	auto pixel_width = get_width() / native_width;
+
+// 	for (uint8_t i = 0; i < native_height; i++) {
+// 		for (uint8_t j = 0; j < native_width; j++) {
+// 			if (pixel_states[(i * native_height) + j]) {
+// 				cr->rectangle(j, i, CHECK_SIZE, CHECK_SIZE);
+// 				cr->fill();
+// 			}
+// 		}
+// 	}
+// }

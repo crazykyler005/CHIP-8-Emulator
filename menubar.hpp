@@ -3,6 +3,7 @@
 #include <gtkmm.h>
 // #include <vector>
 // #include "window.hpp"
+#include "chip8.hpp"
 
 
 class MenuBar : public Gtk::PopoverMenuBar {
@@ -12,6 +13,8 @@ public:
 	inline static int MAX_RESOLUTION_MAGNIFACTION = 4;
 
 	void generate();
+	int get_height() { return _height; };
+	void set_chip8_pointer(Chip8* chip8_pointer) { _chip8_ptr; };
 
 private:
 	void on_menu_file_load();
@@ -27,8 +30,11 @@ private:
 
 	int _native_height = 400;
 	int _native_width = 400;
+	int _height = 25;
+
 	std::string _default_title = "test";
 	Gtk::Window* _parent_window;
+	Chip8* _chip8_ptr;
 
 	// std::vector<Glib::RefPtr<Gio::MenuItem>> save_menu_items;
 	// std::vector<Glib::RefPtr<Gio::MenuItem>> load_menu_items;

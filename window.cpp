@@ -3,8 +3,10 @@
 Window::Window()
 	: m_box(Gtk::Orientation::VERTICAL)
 {
+	chip8 = Chip8();
+	m_menubar.set_chip8_pointer(&chip8);
+
 	set_title(default_title);
-	set_default_size(_native_width, _native_menubar_height + _native_screen_height);
 
 	m_box.append(m_menubar);
 	m_box.append(screen);
@@ -13,6 +15,8 @@ Window::Window()
 
 	m_menubar.generate();
 	m_menubar.set_size_request(-1, _native_menubar_height);
+
+	set_default_size(Chip8::native_width, get_allocated_height() + Chip8::native_height + m_menubar.get_height());
 
 	screen.init();
 	
@@ -25,6 +29,12 @@ Window::Window()
 	);
 
 	add_controller(controller);
+}
+
+void Window::main_loop() {
+	if (chip8.draw_flag) {
+		//screen.update_display(chip8.px_states, Chip::native_width, Chip8::native_height);
+	}
 }
 
 int Window::get_native_width() {
@@ -46,14 +56,13 @@ bool Window::on_key_pressed(guint keyval, guint, Gdk::ModifierType state)
 				(state & NO_KEY_MODIFIER)
 			)
 		) {
-			// chip8.keys_pressed[i] = true;
+			chip8.keys_pressed[i] = true;
 
 			printf("Valid key press\n");
 			return true;
 		}
 	}
 
-	// 
 	if (((state & ~(Gdk::ModifierType::CONTROL_MASK | Gdk::ModifierType::LOCK_MASK)) == NO_KEY_MODIFIER) &&
 		((state & (Gdk::ModifierType::CONTROL_MASK)) == Gdk::ModifierType::CONTROL_MASK)) {
 		if (key_pressed == GDK_KEY_S) {

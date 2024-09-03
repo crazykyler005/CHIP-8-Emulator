@@ -1,4 +1,3 @@
-// #include "chip8.hpp"
 #include "window.hpp"
 #include <cstdio>
 #include <stdint.h>
