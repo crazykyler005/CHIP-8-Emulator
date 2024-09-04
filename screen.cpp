@@ -39,8 +39,8 @@ void Screen::on_draw(const Cairo::RefPtr<Cairo::Context>& cr, int width, int hei
 
 	for (uint8_t i = 0; i < _chip8_ptr->native_height; i++) {
 		for (uint8_t j = 0; j < _chip8_ptr->native_width; j++) {
-			if (_chip8_ptr->px_states[(i * _chip8_ptr->native_height) + j]) {
-				cr->rectangle(j*pixel_width, i*pixel_height, pixel_width, pixel_height);
+			if (_chip8_ptr->px_states[(i * _chip8_ptr->native_width) + j] == 1) {
+				cr->rectangle(j * pixel_width, i * pixel_height, pixel_width, pixel_height);
 			}
 		}
 	}

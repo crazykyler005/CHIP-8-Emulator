@@ -27,8 +27,6 @@ private:
 
 	Glib::RefPtr<Gio::SimpleActionGroup> m_refActionGroup;
 
-	int _native_height = 400;
-	int _native_width = 400;
 	int _height = 25;
 
 	std::string _default_title = "test";

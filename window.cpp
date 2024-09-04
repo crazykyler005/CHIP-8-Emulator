@@ -26,6 +26,10 @@ Window::Window()
 	);
 
 	add_controller(controller);
+
+	chip8.px_states[32] = 1;
+	chip8.px_states[63] = 1;
+	chip8.px_states[78] = 1;
 }
 
 void Window::main_loop() {

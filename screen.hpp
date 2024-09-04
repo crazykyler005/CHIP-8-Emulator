@@ -13,8 +13,5 @@ protected:
 
 private:
 	Gtk::Window* _parent_window;
-	int _native_height = 32;
-	int _native_width = 64;
-
 	Chip8* _chip8_ptr;
 };
