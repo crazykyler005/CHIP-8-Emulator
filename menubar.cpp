@@ -64,7 +64,7 @@ void MenuBar::generate() {
 
 	// generating color scheme submenu to settings menu
 	auto resolution_submenu = Gio::Menu::create();
-	for (int i = 2; i < 9; i+=2) {
+	for (int i = 4; i <= 16; i+=4) {
 		auto action_name = "x" + std::to_string(i);
 
 		m_refActionGroup->add_action(action_name, [this, i]() { 
@@ -193,7 +193,9 @@ void MenuBar::on_menu_update_resolution(int i)
 	auto current_titlebar_height = _parent_window->get_height() - (current_screen_height + _height);
 	auto updated_screen_height = Chip8::native_height * i;
 
+	// TODO: figure out why this doesn't update the window dimensions if the same resolution setting is selected more than once
 	_parent_window->set_default_size(Chip8::native_width * i, updated_screen_height + _height + current_titlebar_height);
+	printf("test\n");
 }
 
 // state menu callbacks

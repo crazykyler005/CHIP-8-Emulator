@@ -5,7 +5,6 @@
 // #include "window.hpp"
 #include "chip8.hpp"
 
-
 class MenuBar : public Gtk::PopoverMenuBar {
 
 public:

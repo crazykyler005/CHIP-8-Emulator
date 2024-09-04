@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <stdint.h>
 
-// g++ `pkg-config --cflags gtkmm-4.0` -o test main.cpp window.cpp screen.cpp menubar.cpp `pkg-config --libs gtkmm-4.0`
+// g++ `pkg-config --cflags gtkmm-4.0` -o test main.cpp window.cpp screen.cpp chip8.cpp menubar.cpp helper_functions.cpp `pkg-config --libs gtkmm-4.0`
 
 int main(int argc, char *argv[])
 {

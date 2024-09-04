@@ -20,8 +20,8 @@ class Window : public Gtk::Window
 public:
 	Window();
 	void main_loop();
-	int get_native_width();
-	int get_native_height();
+	int get_minimum_width();
+	int get_minimum_height();
 	std::string default_title = "Chip-8 Emulator";
 	bool on_key_pressed(guint keyval, guint keycode, Gdk::ModifierType state);
 
@@ -32,7 +32,9 @@ protected:
 	Screen screen;
 
 private:
-	int _native_width = 400;
+	inline static int MIN_WINDOW_WIDTH = 250;
+	inline static int MIN_WINDOW_HEIGHT = 125;
+
 	int _native_screen_height = 300;
 	int _native_menubar_height = 25;
 

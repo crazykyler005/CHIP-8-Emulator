@@ -44,33 +44,6 @@ void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 		}
 	}
 
-	// pxiel or bit at starting position
-	// uint64_t px_bit_mask = 0xF << (63 - x);
-	// for (uint8_t yline = 0; yline < pix_height; yline++)
-	// {
-	// 	// Fetch the pixel value from memory starting at location I
-	// 	uint8_t _8px_sprite = memory[index_reg + yline];
-		
-	// 	for (int xline = 0; xline < 8; xline++) {
-	// 		if ((pixel & (0x80 >> xline)) != 0) {
-	// 	}
-
-	// 	// Loop over 8 bits of one row
-	// 	for (int xline = 0; xline < 8; xline++) {
-	// 		// Check if the current evaluated pixel is set to 1 (note that 0x80 >> xline scan through the byte, one bit at the time)
-	// 		if ((pixel & (0x80 >> xline)) != 0) {
-	// 			// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
-	// 			if (gfx[(y + yline)] & (static_cast<uint64_t>(_8px_sprite) << ((63 - x) + 8)) == 1) {
-	// 				registers[0xF] = 1;
-	// 			}
-
-	// 			// Set the pixel value by using XOR
-	// 			gfx[x + xline + ((y + yline) * native_width)] ^= 1;
-	// 		}
-	// 	}
-	// }
-
-	// We changed our gfx[] array and thus need to update the screen.
 	draw_flag = true;
 	
 	return;

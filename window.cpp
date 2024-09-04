@@ -1,8 +1,9 @@
 #include "window.hpp"
 
 Window::Window()
-	: m_box(Gtk::Orientation::VERTICAL)
+	: m_box(Gtk::Orientation::VERTICAL), screen(&chip8)
 {
+	set_default_size(200, 200);
 	chip8 = Chip8();
 	m_menubar.set_chip8_pointer(&chip8);
 
@@ -16,11 +17,7 @@ Window::Window()
 	m_menubar.generate();
 	m_menubar.set_size_request(-1, _native_menubar_height);
 
-	set_default_size(Chip8::native_width, get_allocated_height() + Chip8::native_height + m_menubar.get_height());
-
-	screen.init();
-	
-	printf("height: %d, width: %d\n", m_menubar.get_allocated_height(), m_menubar.get_width());
+	set_default_size(get_minimum_width(), get_minimum_height());
 
 	auto controller = Gtk::EventControllerKey::create();
 
@@ -33,15 +30,32 @@ Window::Window()
 
 void Window::main_loop() {
 	if (chip8.draw_flag) {
-		//screen.update_display(chip8.px_states, Chip::native_width, Chip8::native_height);
+		screen.queue_draw();
 	}
 }
 
-int Window::get_native_width() {
-	return _native_width;
+int Window::get_minimum_width() {
+	// int calculated_min_width;
+
+	// while(calculated_min_width < MIN_WINDOW_WIDTH) {
+	// 	calculated_min_width += chip8.native_width * 4;
+	// }
+
+	return chip8.native_width * 4;;
 }
-int Window::get_native_height() {
-	return _native_screen_height+_native_menubar_height;
+int Window::get_minimum_height() {
+
+	// int calculated_min_height = _native_menubar_height;
+
+	// // TODO: get the actual size of the titlebar 
+	int titlebar_height = 7;
+	// calculated_min_height += titlebar_height;
+
+	// while(calculated_min_height < MIN_WINDOW_HEIGHT) {
+	// 	calculated_min_height += chip8.native_height;
+	// }
+
+	return (chip8.native_height * 4) + _native_menubar_height + titlebar_height;
 }
 
 bool Window::on_key_pressed(guint keyval, guint, Gdk::ModifierType state)
@@ -76,7 +90,6 @@ bool Window::on_key_pressed(guint keyval, guint, Gdk::ModifierType state)
 		printf("Valid ctrl press\n");
 		return true;
 	}
-
 
 	printf("char: %x, uppercase: %x, state: %d\n", keyval, g_unichar_toupper(keyval), static_cast<int>(state));
 
