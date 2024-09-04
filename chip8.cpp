@@ -88,6 +88,7 @@ void Chip8::load_program(std::string directory, std::string file_name) {
 
 void Chip8::run_instruction() {
 
+	auto opcode = memory[program_ctr];
 	uint8_t VX_reg = (opcode >> 8) & 0xF; // 3rd nibble
 	uint8_t VY_reg = (opcode >> 4) & 0xF; // 2nd nibble
 
@@ -246,7 +247,20 @@ void Chip8::run_instruction() {
 
 			// A key press is awaited, and then stored in VX (blocking operation, all instruction halted until next key event)
 			if (sub_opcode == 0x0A) {
-				// registers[VX_reg] = await_key_press();
+				bool key_pressed = false;
+
+				for(uint8_t i = 0; i < 16; i++)
+				{
+					if(keys_pressed[i])
+					{
+						registers[VX_reg] = i;
+						key_pressed = true;
+					}
+				}
+
+				if (key_pressed) {
+					return;
+				}
 			}
 
 			// Sets the delay timer to VX
@@ -261,8 +275,11 @@ void Chip8::run_instruction() {
 			// There is one known game that depends on this happening and at least one that doesn't.
 			} else if (sub_opcode == 0x1E) {
 				index_reg += registers[VX_reg];
+
 				// TODO: implement a setting from the menubar that enables this functionallity
-				// registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
+				if (_0xFX1E_overflow_enabled) {
+					registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
+				}
 
 			// Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font
 			} else if (sub_opcode == 0x29) {
@@ -304,14 +321,18 @@ void Chip8::run_instruction() {
 			break;
 	}
 
-	// Update timers
-    if (delay_timer > 0)
-        --delay_timer;
+	program_ctr += 2;
 
-    if (sound_timer > 0)
-        if(sound_timer == 1);
-            // TODO: Implement sound
-        --sound_timer;
+	// Update timers
+	if (delay_timer > 0)
+		--delay_timer;
+
+	if (sound_timer > 0)
+		if(sound_timer == 1);
+			play_sfx = true;
+			
+		// TODO: Implement sound
+		--sound_timer;
 }
 
 

@@ -29,10 +29,13 @@ public:
 	// 64 pixels width by 32 pixels height
 	inline static uint8_t native_width = 64;
 	inline static uint8_t native_height = 32;
+	inline static MICRO_SECONDS_PER_FRAME = (1/60) * 1000000;
 
 	bool keys_pressed[16] = {};
 	bool draw_flag = false;
 	bool is_paused = false;
+	bool _0xFX1E_overflow_enabled = false;
+	bool play_sfx = false;
 
 	// TODO: optimise how pixel states are stored by changing the above array to the following 
 	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable
@@ -99,8 +102,6 @@ private:
 	//uint8_t stack_ptr = 0;
 
 	uint16_t index_reg = 0;
-	uint16_t opcode = 0;
-
 	uint16_t program_ctr = program_start_addr;
 
 	// used to figure out if we should be saving data from memory into a save state

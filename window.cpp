@@ -26,15 +26,28 @@ Window::Window()
 	);
 
 	add_controller(controller);
-
-	chip8.px_states[32] = 1;
-	chip8.px_states[63] = 1;
-	chip8.px_states[78] = 1;
 }
 
-void Window::main_loop() {
-	if (chip8.draw_flag) {
-		screen.queue_draw();
+void Window::main_loop()
+{
+	while (true) {
+		chip8.run_instruction();
+
+		if (chip8.is_paused) {
+			return;
+		}
+
+		if (chip8.draw_flag) {
+			screen.queue_draw();
+			chip8.draw_flag = false;
+		}
+
+		if (chip8.play_sfx) {
+			// play sound
+			chip8.play_sfx = false;
+		}
+
+		g_usleep(Chip8::MICRO_SECONDS_PER_FRAME);
 	}
 }
 
@@ -45,7 +58,7 @@ int Window::get_minimum_width() {
 	// 	calculated_min_width += chip8.native_width * 4;
 	// }
 
-	return chip8.native_width * 4;;
+	return chip8.native_width * 4;
 }
 int Window::get_minimum_height() {
 
