@@ -99,13 +99,17 @@ void Chip8::run_instruction() {
 		case 0x0000:
 			if (opcode == 0x00E0) {
 				// clear screen
+				memset(px_states, 0, sizeof(px_states));
+				draw_flag = true;
+
 			} else if (opcode == 0x00EE) {
-				// program_ctr = stack[stack_ptr];
+				// return from subroutine
 				program_ctr = stack.back();
 				stack.pop_back();
-				// return from subroutine
+
 			} else if (opcode > 0xFF) {
-				printf("Unsupported opcode");
+				printf("Unsupported opcode\n");
+				// chip8.pause = true;
 			}
 			break;
 
@@ -119,7 +123,7 @@ void Chip8::run_instruction() {
 			// stack[stack_ptr] = program_ctr;
 			stack.push_back(program_ctr);
 			program_ctr = 0x0FFF & opcode;
-			break;
+			return;
 
 		case 0x3000: // 3XNN
 			// Skips the next instruction if VX equals NN (usually the next instruction is a jump to skip a code block)
@@ -215,7 +219,7 @@ void Chip8::run_instruction() {
 			return;
 
 		case 0xC000: // Vx = rand() & NN
-			registers[VX_reg] = static_cast<uint8_t>(rand() & opcode);
+			registers[VX_reg] = static_cast<uint8_t>(rand() & (opcode & 0xFF));
 			break;
 
 		case 0xD000: // draw(Vx, Vy, N) 
@@ -234,6 +238,8 @@ void Chip8::run_instruction() {
 			// Skips the next instruction if the key stored in VX is not pressed (usually the next instruction is a jump to skip a code block)
 			else if (((opcode & 0xFF) == 0xA1) && (keys_pressed[registers[VX_reg]] == false)) {
 				program_ctr += 2;
+			} else {
+				printf("Unsupported opcode\n");
 			}
 			break;
 
@@ -330,7 +336,7 @@ void Chip8::run_instruction() {
 	if (sound_timer > 0)
 		if(sound_timer == 1);
 			play_sfx = true;
-			
+
 		// TODO: Implement sound
 		--sound_timer;
 }
