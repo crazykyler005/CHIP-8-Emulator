@@ -17,8 +17,7 @@ public:
 
 	void reset();
 	void initialize();
-	void run_instruction();
-	// uint8_t key_pressed();
+	void run();
 	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height);
 
 	void load_program(std::string directory, std::string file_name);
@@ -43,6 +42,9 @@ public:
 	uint8_t px_states[64 * 32] = {};
 
 private:
+	void run_instruction();
+	void countdown_timers();
+
 	std::string program_name = "";
 	std::string SAVE_FILE_EXTENSION = ".sav";
 	// 0x000-0x1FF - Chip 8 interpreter (contains font set in emu)

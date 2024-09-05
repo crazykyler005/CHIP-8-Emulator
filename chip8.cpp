@@ -103,6 +103,11 @@ void Chip8::run_instruction() {
 				draw_flag = true;
 
 			} else if (opcode == 0x00EE) {
+				if (stack.size() == 0) {
+					printf("Cannot return from subroutine\n");
+					break;
+				}
+
 				// return from subroutine
 				program_ctr = stack.back();
 				stack.pop_back();
@@ -328,8 +333,10 @@ void Chip8::run_instruction() {
 	}
 
 	program_ctr += 2;
+}
 
-	// Update timers
+void Chip8::countdown_timers() 
+{
 	if (delay_timer > 0)
 		--delay_timer;
 
@@ -339,6 +346,13 @@ void Chip8::run_instruction() {
 
 		// TODO: Implement sound
 		--sound_timer;
+}
+
+void Chip8::run() 
+{
+	run_instruction();
+	// always want to count down the timers even if the program counter is not updated
+	countdown_timers();
 }
 
 

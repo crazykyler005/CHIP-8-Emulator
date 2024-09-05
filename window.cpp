@@ -31,7 +31,7 @@ Window::Window()
 void Window::main_loop()
 {
 	while (true) {
-		chip8.run_instruction();
+		chip8.run();
 
 		if (chip8.is_paused) {
 			return;
