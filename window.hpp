@@ -22,13 +22,12 @@ public:
 	void main_loop();
 	int get_minimum_width();
 	int get_minimum_height();
-	std::string default_title = "Chip-8 Emulator";
 	bool on_key_pressed(guint keyval, guint keycode, Gdk::ModifierType state);
 
 protected:
 	Gtk::Box m_box;
-	MenuBar m_menubar;
 
+	MenuBar m_menubar;
 	Screen screen;
 
 private:

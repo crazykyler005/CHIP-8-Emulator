@@ -8,12 +8,13 @@
 class MenuBar : public Gtk::PopoverMenuBar {
 
 public:
-	inline static int MAX_SAVE_LOAD_STATES = 4;
-	inline static int MAX_RESOLUTION_MAGNIFACTION = 4;
+	MenuBar(Chip8* chip8_pointer);
 
 	void generate();
 	int get_height() { return _height; };
-	void set_chip8_pointer(Chip8* chip8_pointer) { _chip8_ptr; };
+
+	inline static int MAX_SAVE_LOAD_STATES = 4;
+	inline static int MAX_RESOLUTION_MAGNIFACTION = 4;
 
 private:
 	void on_menu_file_load();
@@ -29,7 +30,6 @@ private:
 
 	int _height = 25;
 
-	std::string _default_title = "test";
 	Gtk::Window* _parent_window;
 	Chip8* _chip8_ptr;
 

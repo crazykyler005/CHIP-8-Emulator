@@ -8,11 +8,11 @@ Key bindings
 Controller input (maybe)
 
 A menu bar with the following options:
-- Select and load a program/game from a file
+- ~~Select and load a program/game from a file~~
+- Pause option
 - Reset option
 - Save states
 - Load save states
 - Select a color scheme (default white and black)
-- ~~Ability maginify the resolution by 1x, 2x, 3x or 4x~~
+- ~~Ability maginify the resolution by x amount of the native~~
 
-Many of these menu options would be mapped to a key

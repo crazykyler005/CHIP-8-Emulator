@@ -1,13 +1,12 @@
 #include "window.hpp"
 
 Window::Window()
-	: m_box(Gtk::Orientation::VERTICAL), screen(&chip8)
+	: m_box(Gtk::Orientation::VERTICAL), m_menubar(&chip8), screen(&chip8)
 {
 	set_default_size(200, 200);
 	chip8 = Chip8();
-	m_menubar.set_chip8_pointer(&chip8);
 
-	set_title(default_title);
+	set_title(Chip8::DEFAULT_TITLE);
 
 	m_box.append(m_menubar);
 	m_box.append(screen);
@@ -43,7 +42,8 @@ void Window::main_loop()
 		}
 
 		if (chip8.play_sfx) {
-			// play sound
+			// TODO: play sound effect
+			printf("BEEP!");
 			chip8.play_sfx = false;
 		}
 

@@ -4,6 +4,11 @@
 #include <cstdio>
 #include <iostream>
 
+MenuBar::MenuBar(Chip8* chip8_pointer)
+{
+	_chip8_ptr = chip8_pointer;
+}
+
 void MenuBar::generate() {
 	auto* root_widget = get_root();
 	_parent_window = dynamic_cast<Gtk::Window*>(root_widget);
@@ -136,9 +141,9 @@ void MenuBar::on_file_dialog_finish(const Glib::RefPtr<Gio::AsyncResult>& result
 		auto file_path = file->get_path();
 		std::cout << "File path: " <<  file_path << std::endl;
 
-		_parent_window->set_title(_default_title + " - " + filename);
+		_parent_window->set_title(Chip8::DEFAULT_TITLE + " - " + filename);
 
-		_chip8_ptr->load_program(file_path, filename);
+		_chip8_ptr->load_program(file_path);
 	}
 	catch (const Gtk::DialogError& err)
 	{

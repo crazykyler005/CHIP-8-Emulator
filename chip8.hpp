@@ -20,15 +20,15 @@ public:
 	void run();
 	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height);
 
-	void load_program(std::string directory, std::string file_name);
+	void load_program(std::string file_path);
 	bool save_program_state(uint8_t state_number, uint32_t utc_timestamp);
 	void load_program_state(std::string file_name);
-
 
 	// 64 pixels width by 32 pixels height
 	inline static uint8_t native_width = 64;
 	inline static uint8_t native_height = 32;
-	inline static MICRO_SECONDS_PER_FRAME = (1/60) * 1000000;
+	inline static time_t MICRO_SECONDS_PER_FRAME = (1/60) * 1000000;
+	inline static std::string DEFAULT_TITLE = "Chip-8 Emulator";
 
 	bool keys_pressed[16] = {};
 	bool draw_flag = false;
@@ -39,7 +39,7 @@ public:
 	// TODO: optimise how pixel states are stored by changing the above array to the following 
 	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable
 	// uint64_t px_states[32] = {};
-	uint8_t px_states[64 * 32] = {};
+	uint8_t px_states[64 * 32] = {};	
 
 private:
 	void run_instruction();

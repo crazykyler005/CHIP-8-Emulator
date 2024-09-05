@@ -51,18 +51,27 @@ void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 
 void Chip8::reset() {
 	program_ctr = program_start_addr;
-	opcode = 0;
 	index_reg = 0;
+
+	// clear stack
 	stack.clear();
-	// stack_ptr = 0;
+
+	// clear all registers
 	memset(registers, 0, sizeof(registers));
 
 	// Clear display
-	// reset_display()
-	// Clear stack. May not work with uint12_t struct
-	memset(stack.data(), 0, sizeof(stack)/sizeof(stack[0]));
+	memset(px_states, 0, sizeof(px_states));
+	draw_flag = true;
+
 	// Clear registers V0-VF
 	memset(registers, 0, sizeof(registers));
+
+	// Clears key_presses
+	memset(keys_pressed, false, sizeof(keys_pressed));
+
+	is_paused = false;
+	play_sfx = false;
+	lowest_mem_addr_updated = 0xFFF;
 }
 
 void Chip8::initialize() {
@@ -72,10 +81,10 @@ void Chip8::initialize() {
 	memset(memory + sizeof(fontset), 0, sizeof(memory) - sizeof(fontset));
 }
 
-void Chip8::load_program(std::string directory, std::string file_name) {
+void Chip8::load_program(std::string file_path) {
 	reset();
 
-	auto file = fopen((directory + file_name).c_str(), "r");
+	auto file = fopen((file_path).c_str(), "r");
 
 	if (file == NULL) {
 		return;
