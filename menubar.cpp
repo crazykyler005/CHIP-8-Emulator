@@ -1,17 +1,18 @@
 #include "menubar.hpp"
 #include "helper_functions.hpp"
+#include "window.hpp"
 
 #include <cstdio>
 #include <iostream>
 
-MenuBar::MenuBar(Chip8* chip8_pointer)
+MenuBar::MenuBar(Chip8* chip8_pointer, Window& parent_window)
+	: _chip8_ptr(chip8_pointer), _parent_window(parent_window)
 {
-	_chip8_ptr = chip8_pointer;
 }
 
 void MenuBar::generate() {
 	auto* root_widget = get_root();
-	_parent_window = dynamic_cast<Gtk::Window*>(root_widget);
+	// _parent_window = dynamic_cast<Gtk::Window*>(root_widget);
 
 	// Create action group for window
 	m_refActionGroup = Gio::SimpleActionGroup::create();
@@ -141,9 +142,13 @@ void MenuBar::on_file_dialog_finish(const Glib::RefPtr<Gio::AsyncResult>& result
 		auto file_path = file->get_path();
 		std::cout << "File path: " <<  file_path << std::endl;
 
-		_parent_window->set_title(Chip8::DEFAULT_TITLE + " - " + filename);
+		if (!_chip8_ptr->load_program(file_path)) {
+			std::cout << "Falied to load file. " << std::endl;
+		}
 
-		_chip8_ptr->load_program(file_path);
+		_parent_window.set_title(Chip8::DEFAULT_TITLE + " - " + filename);
+		_parent_window.main_loop();
+
 	}
 	catch (const Gtk::DialogError& err)
 	{
@@ -158,7 +163,7 @@ void MenuBar::on_file_dialog_finish(const Glib::RefPtr<Gio::AsyncResult>& result
 
 void MenuBar::on_menu_file_quit()
 {
-	_parent_window->close();
+	_parent_window.close();
 }
 
 void MenuBar::on_menu_state_save(int i)
@@ -188,41 +193,24 @@ void MenuBar::on_menu_state_load(int i)
 
 void MenuBar::on_menu_state_pause()
 {
+	if (_chip8_ptr->is_paused) {
+		_chip8_ptr->is_paused = false;
+		_parent_window.main_loop();
+
+		return;
+	}
+
 	_chip8_ptr->is_paused = true;
 	std::cout << "States -> Pause Program";
 }
 
 void MenuBar::on_menu_update_resolution(int i)
 {
-	auto current_screen_height = _parent_window->get_child()->get_height() - _height;
-	auto current_titlebar_height = _parent_window->get_height() - (current_screen_height + _height);
+	auto current_screen_height = _parent_window.get_child()->get_height() - _height;
+	auto current_titlebar_height = _parent_window.get_height() - (current_screen_height + _height);
 	auto updated_screen_height = Chip8::native_height * i;
 
 	// TODO: figure out why this doesn't update the window dimensions if the same resolution setting is selected more than once
-	_parent_window->set_default_size(Chip8::native_width * i, updated_screen_height + _height + current_titlebar_height);
+	_parent_window.set_default_size(Chip8::native_width * i, updated_screen_height + _height + current_titlebar_height);
 	printf("test\n");
 }
-
-// state menu callbacks
-// void save_state_clbk(GtkWidget *widget, gpointer data) {
-// 	auto state_idx = static_cast<uint8_t>(data);
-// 	auto utc = utc_time_in_seconds();
-
-// 	// save program state into file
-// 	// chip8.save_program_state(state_idx, utc);
-
-// 	// updating label
-// 	gtk_label_set_label(widget, ("Save State " + std::to_string(state_idx) + " - " + get_time_str(true, utc)).c_str());
-// }
-
-// void load_state_clbk(GtkWidget *widget, gpointer data) {
-
-// 	auto state_idx = static_cast<uint8_t>(data);
-
-// 	std::string load_state_fn = program_name + "_" + std::to_string(state_idx) + ".sav";
-// 	// chip8.load_program_state(load_state_fn);
-// }
-
-// void append_text_to_item_label(GMenuItem& item, std::string text) {
-// 	gtk_label_set_label(item, std::string(std::string(gtk_label_get_label(item)) + " " + text).c_str());
-// }

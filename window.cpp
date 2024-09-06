@@ -1,20 +1,23 @@
 #include "window.hpp"
+#include "menubar.hpp"
 
 Window::Window()
-	: m_box(Gtk::Orientation::VERTICAL), m_menubar(&chip8), screen(&chip8)
+	: m_box(Gtk::Orientation::VERTICAL), 
+	  m_menubar(std::make_unique<MenuBar>(&chip8, *this)), 
+	  screen(&chip8)
 {
 	set_default_size(200, 200);
 	chip8 = Chip8();
 
 	set_title(Chip8::DEFAULT_TITLE);
 
-	m_box.append(m_menubar);
+	m_box.append(*m_menubar);
 	m_box.append(screen);
 
 	set_child(m_box);
 
-	m_menubar.generate();
-	m_menubar.set_size_request(-1, _native_menubar_height);
+	m_menubar->generate();
+	m_menubar->set_size_request(-1, _native_menubar_height);
 
 	set_default_size(get_minimum_width(), get_minimum_height());
 
@@ -29,6 +32,8 @@ Window::Window()
 
 void Window::main_loop()
 {
+	static uint8_t i = 0;
+
 	while (true) {
 		chip8.run();
 
@@ -46,8 +51,13 @@ void Window::main_loop()
 			printf("BEEP!");
 			chip8.play_sfx = false;
 		}
-
+		
 		g_usleep(Chip8::MICRO_SECONDS_PER_FRAME);
+
+		i++;
+		if (i > 2000) {
+			break;
+		}
 	}
 }
 

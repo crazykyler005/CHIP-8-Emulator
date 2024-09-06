@@ -12,6 +12,5 @@ protected:
 	void on_draw(const Cairo::RefPtr<Cairo::Context>& cr, int width, int height);
 
 private:
-	Gtk::Window* _parent_window;
 	Chip8* _chip8_ptr;
 };

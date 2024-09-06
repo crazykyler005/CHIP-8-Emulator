@@ -1,20 +1,25 @@
+#ifndef WINDOW_HPP
+#define WINDOW_HPP
+
 #pragma once
 
 #include <gtkmm.h>
 // #include <vector>
-// #include "window.hpp"
+
 #include "chip8.hpp"
+
+class Window;
 
 class MenuBar : public Gtk::PopoverMenuBar {
 
 public:
-	MenuBar(Chip8* chip8_pointer);
+	MenuBar(Chip8* chip8_pointer, Window& _parent_window);
 
 	void generate();
 	int get_height() { return _height; };
 
-	inline static int MAX_SAVE_LOAD_STATES = 4;
-	inline static int MAX_RESOLUTION_MAGNIFACTION = 4;
+	inline static const int MAX_SAVE_LOAD_STATES = 4;
+	inline static const int MAX_RESOLUTION_MAGNIFACTION = 4;
 
 private:
 	void on_menu_file_load();
@@ -28,11 +33,13 @@ private:
 
 	Glib::RefPtr<Gio::SimpleActionGroup> m_refActionGroup;
 
-	int _height = 25;
+	inline static const int _height = 25;
 
-	Gtk::Window* _parent_window;
+	Window& _parent_window;
 	Chip8* _chip8_ptr;
 
 	// std::vector<Glib::RefPtr<Gio::MenuItem>> save_menu_items;
 	// std::vector<Glib::RefPtr<Gio::MenuItem>> load_menu_items;
 };
+
+#endif

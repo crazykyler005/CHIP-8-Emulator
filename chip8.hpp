@@ -20,15 +20,15 @@ public:
 	void run();
 	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height);
 
-	void load_program(std::string file_path);
+	bool load_program(std::string file_path);
 	bool save_program_state(uint8_t state_number, uint32_t utc_timestamp);
 	void load_program_state(std::string file_name);
 
 	// 64 pixels width by 32 pixels height
-	inline static uint8_t native_width = 64;
-	inline static uint8_t native_height = 32;
-	inline static time_t MICRO_SECONDS_PER_FRAME = (1/60) * 1000000;
-	inline static std::string DEFAULT_TITLE = "Chip-8 Emulator";
+	inline static const uint8_t native_width = 64;
+	inline static const uint8_t native_height = 32;
+	inline static const time_t MICRO_SECONDS_PER_FRAME = (1/60) * 1000000;
+	inline static const std::string DEFAULT_TITLE = "Chip-8 Emulator";
 
 	bool keys_pressed[16] = {};
 	bool draw_flag = false;
@@ -46,25 +46,24 @@ private:
 	void countdown_timers();
 
 	std::string program_name = "";
-	std::string SAVE_FILE_EXTENSION = ".sav";
+	inline static const std::string SAVE_FILE_EXTENSION = ".sav";
 	// 0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
 	// 0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
 	// 0x200-0xFFF - Program ROM and work RAM
 
-	inline static uint16_t MEMORY_SIZE = 4096; //0x1000
+	inline static const uint16_t MEMORY_SIZE = 4096; //0x1000
 
-	inline static uint16_t font_addr_start = 0x000;
-	inline static uint16_t font_addr_end = 0x1FF;
+	inline static const uint16_t FONT_START_ADDR = 0x000;
 
-	inline static uint16_t call_stack_start = 0xEA0; // 0xEA0-0xEFF
-	inline static uint16_t call_stack_end = 0xEFF;
+	inline static const uint16_t call_stack_start = 0xEA0; // 0xEA0-0xEFF
+	inline static const uint16_t call_stack_end = 0xEFF;
 
-	inline static uint16_t refresh_display_addr_start = 0xF00;
-	inline static uint16_t refresh_display_addr_end = 0xFFF;
+	// inline static const uint16_t refresh_display_addr_start = 0xF00;
+	// inline static const uint16_t refresh_display_addr_end = 0xFFF;
 
 	// most programs written for the original system begin at memory location
 	// 0x200 because the interpreter occupied the first 512 bytes
-	inline static uint16_t program_start_addr = 0x200;
+	inline static const uint16_t program_start_addr = 0x200;
 
 	inline static uint8_t fontset[80] =
 	{ 
@@ -86,22 +85,15 @@ private:
 		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 	};
 
-	inline static uint8_t SPRITE_PX_WIDTH = 8;
+	inline static const uint8_t SPRITE_PX_WIDTH = 8;
 
 	uint8_t memory[4096] = {};
 	uint8_t registers[16] = {};
 
 	// stack is used to remeber the current location before a jump operation is made
 	// the program counter gets stored in the stack
-
-	// stack
 	inline static size_t MAX_STACK_SIZE = 16;
 	std::vector<uint16_t> stack;
-	// uint12_t stack[16] = {};
-
-	// stack point may not be necessary if I use a vector size I can just 
-	// reference the last program_ctr value added
-	//uint8_t stack_ptr = 0;
 
 	uint16_t index_reg = 0;
 	uint16_t program_ctr = program_start_addr;

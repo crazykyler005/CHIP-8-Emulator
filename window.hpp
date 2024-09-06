@@ -1,3 +1,6 @@
+#ifndef MENUBAR_HPP
+#define MENUBAR_HPP
+
 #pragma once
 
 #include <gtkmm.h>
@@ -6,7 +9,6 @@
 #include <vector>
 #include <memory>
 #include "screen.hpp"
-#include "menubar.hpp"
 #include "chip8.hpp"
 
 enum class ColorScheme : uint8_t { // TODO: use a struct for storing RGB values
@@ -14,6 +16,9 @@ enum class ColorScheme : uint8_t { // TODO: use a struct for storing RGB values
 	GAMEBOY,
 	END
 };
+
+// Forward declare MenuBar class
+class MenuBar;
 
 class Window : public Gtk::Window
 {
@@ -27,18 +32,15 @@ public:
 protected:
 	Gtk::Box m_box;
 
-	MenuBar m_menubar;
+	std::unique_ptr<MenuBar> m_menubar;
 	Screen screen;
 
 private:
-	inline static int MIN_WINDOW_WIDTH = 250;
-	inline static int MIN_WINDOW_HEIGHT = 125;
-
-	int _native_screen_height = 300;
-	int _native_menubar_height = 25;
+	inline static const int MIN_WINDOW_WIDTH = 250;
+	inline static const int MIN_WINDOW_HEIGHT = 125;
+	inline static const int _native_menubar_height = 25;
 
 	Chip8 chip8;
-
 
 	// OG key mapping    Recommend key mapping
 	//   |1|2|3|C|            |1|2|3|4|
@@ -66,3 +68,5 @@ private:
 
 	static inline Gdk::ModifierType NO_KEY_MODIFIER = static_cast<Gdk::ModifierType>(0);
 };
+
+#endif

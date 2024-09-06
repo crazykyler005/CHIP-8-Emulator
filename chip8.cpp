@@ -81,23 +81,27 @@ void Chip8::initialize() {
 	memset(memory + sizeof(fontset), 0, sizeof(memory) - sizeof(fontset));
 }
 
-void Chip8::load_program(std::string file_path) {
+bool Chip8::load_program(std::string file_path) {
 	reset();
 
 	auto file = fopen((file_path).c_str(), "r");
 
 	if (file == NULL) {
-		return;
+		return false;
 	}
 	
 	for (uint16_t addr = program_start_addr; addr < sizeof(memory) && !feof(file); addr++) {
 		memory[addr] = fgetc(file);
 	}
+
+	return true;
 }
 
 void Chip8::run_instruction() {
 
-	auto opcode = memory[program_ctr];
+	uint16_t opcode = (static_cast<uint16_t>(memory[program_ctr]) << 8) + memory[program_ctr + 1];
+	// printf("opcode: %x\n", opcode);
+
 	uint8_t VX_reg = (opcode >> 8) & 0xF; // 3rd nibble
 	uint8_t VY_reg = (opcode >> 4) & 0xF; // 2nd nibble
 
@@ -123,7 +127,7 @@ void Chip8::run_instruction() {
 
 			} else if (opcode > 0xFF) {
 				printf("Unsupported opcode\n");
-				// chip8.pause = true;
+				// chip8.is_paused = true;
 			}
 			break;
 
@@ -351,7 +355,7 @@ void Chip8::countdown_timers()
 
 	if (sound_timer > 0)
 		if(sound_timer == 1);
-			play_sfx = true;
+			play_sfx = false;
 
 		// TODO: Implement sound
 		--sound_timer;
