@@ -3,9 +3,8 @@
 #include <gtkmm.h>
 
 Screen::Screen(Chip8* chip8_pointer)
+	: _chip8_ptr(chip8_pointer)
 {
-	_chip8_ptr = chip8_pointer;
-
 	// using full size of window
 	set_hexpand(true);
 	set_halign(Gtk::Align::FILL);
@@ -21,7 +20,6 @@ Screen::~Screen()
 
 void Screen::on_draw(const Cairo::RefPtr<Cairo::Context>& cr, int width, int height)
 {
-	printf("drawing...\n");
 	double pixel_height = static_cast<double>(height) / static_cast<double>(_chip8_ptr->native_height);
 	double pixel_width = static_cast<double>(width) / static_cast<double>(_chip8_ptr->native_width);
 

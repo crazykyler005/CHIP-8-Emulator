@@ -10,15 +10,10 @@
 #include <filesystem>
 #include <cstring>
 
-static std::string program_directory = "";
-
 Chip8::Chip8() {
 	// loading fontset into the designated position in memory (0-80)
 	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));
 }
-
-// implement in different class?
-static uint8_t key_pressed() { return 1; }
 
 void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 	// Reset register VF
@@ -74,13 +69,6 @@ void Chip8::reset() {
 	lowest_mem_addr_updated = 0xFFF;
 }
 
-void Chip8::initialize() {
-	reset();
-
-	// Clear most of the memory
-	memset(memory + sizeof(fontset), 0, sizeof(memory) - sizeof(fontset));
-}
-
 bool Chip8::load_program(std::string file_path) {
 	reset();
 
@@ -90,6 +78,8 @@ bool Chip8::load_program(std::string file_path) {
 		return false;
 	}
 	
+	memset(memory + sizeof(fontset), 0, sizeof(memory) - sizeof(fontset));
+
 	for (uint16_t addr = program_start_addr; addr < sizeof(memory) && !feof(file); addr++) {
 		memory[addr] = fgetc(file);
 	}

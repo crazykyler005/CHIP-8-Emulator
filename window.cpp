@@ -32,7 +32,7 @@ Window::Window()
 
 void Window::main_loop()
 {
-	static uint8_t i = 0;
+	// uint16_t i = 0;
 
 	while (true) {
 		chip8.run();
@@ -51,13 +51,15 @@ void Window::main_loop()
 			printf("BEEP!");
 			chip8.play_sfx = false;
 		}
-		
+
 		g_usleep(Chip8::MICRO_SECONDS_PER_FRAME);
 
-		i++;
-		if (i > 2000) {
-			break;
-		}
+		// test code
+		// i++;
+		// if (i > 150) {
+		// 	printf("breaking news\n");
+		// 	break;
+		// }
 	}
 }
 

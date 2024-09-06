@@ -12,7 +12,6 @@ MenuBar::MenuBar(Chip8* chip8_pointer, Window& parent_window)
 
 void MenuBar::generate() {
 	auto* root_widget = get_root();
-	// _parent_window = dynamic_cast<Gtk::Window*>(root_widget);
 
 	// Create action group for window
 	m_refActionGroup = Gio::SimpleActionGroup::create();
@@ -130,7 +129,7 @@ void MenuBar::on_menu_file_load()
 }
 
 void MenuBar::on_file_dialog_finish(const Glib::RefPtr<Gio::AsyncResult>& result,
-  const Glib::RefPtr<Gtk::FileDialog>& dialog)
+	const Glib::RefPtr<Gtk::FileDialog>& dialog)
 {
   // Handle the response:
 	try
@@ -168,16 +167,11 @@ void MenuBar::on_menu_file_quit()
 
 void MenuBar::on_menu_state_save(int i)
 {
-	std::cout << "States -> Save file " + std::to_string(i) << std::endl;
+	std::cout << "States -> Save state " + std::to_string(i) << std::endl;
 
 	// need to pause the program here, generate a save state, then resume the application
 	auto utc_timestamp = utc_time_in_seconds();
 	_chip8_ptr->save_program_state(i, utc_timestamp);
-	// auto state_idx = static_cast<uint8_t>(i);
-	// auto utc = utc_time_in_seconds();
-
-	// save program state into file
-	// chip8.save_program_state(state_idx, utc);
 
 	// save_menu_items[i]->set_label("test");
 
@@ -188,7 +182,7 @@ void MenuBar::on_menu_state_save(int i)
 void MenuBar::on_menu_state_load(int i)
 {
 	// _chip8_ptr->load_program_state(load_menu_items[i]->get_label());
-	std::cout << "States -> Load file " + std::to_string(i) << std::endl;
+	std::cout << "States -> Load state " + std::to_string(i) << std::endl;
 }
 
 void MenuBar::on_menu_state_pause()

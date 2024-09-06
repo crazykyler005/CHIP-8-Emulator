@@ -16,7 +16,6 @@ public:
 	Chip8();
 
 	void reset();
-	void initialize();
 	void run();
 	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height);
 
