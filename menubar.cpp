@@ -146,7 +146,9 @@ void MenuBar::on_file_dialog_finish(const Glib::RefPtr<Gio::AsyncResult>& result
 		}
 
 		_parent_window.set_title(Chip8::DEFAULT_TITLE + " - " + filename);
-		_parent_window.main_loop();
+		_parent_window.run_main_loop();
+
+		printf("test\n");
 
 	}
 	catch (const Gtk::DialogError& err)
@@ -189,7 +191,7 @@ void MenuBar::on_menu_state_pause()
 {
 	if (_chip8_ptr->is_paused) {
 		_chip8_ptr->is_paused = false;
-		_parent_window.main_loop();
+		_parent_window.run_main_loop();
 
 		return;
 	}

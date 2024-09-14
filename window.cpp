@@ -1,5 +1,6 @@
 #include "window.hpp"
 #include "menubar.hpp"
+#include <thread>
 
 Window::Window()
 	: m_box(Gtk::Orientation::VERTICAL), 
@@ -34,7 +35,8 @@ void Window::main_loop()
 {
 	// uint16_t i = 0;
 
-	while (true) {
+	while (!chip8.is_paused) {
+		// printf("%d ", i);
 		chip8.run();
 
 		if (chip8.is_paused) {
@@ -52,15 +54,30 @@ void Window::main_loop()
 			chip8.play_sfx = false;
 		}
 
-		g_usleep(Chip8::MICRO_SECONDS_PER_FRAME);
+		auto duration = std::chrono::microseconds(Chip8::MICRO_SECONDS_PER_FRAME);
+		// Get the current time as a time_point
+		auto current_time = std::chrono::steady_clock::now();
+		// Calculate the time_point to sleep until
+		auto sleep_time = current_time + duration;
+
+		std::this_thread::sleep_until(sleep_time);
+		// g_usleep(Chip8::MICRO_SECONDS_PER_FRAME);
 
 		// test code
 		// i++;
-		// if (i > 150) {
-		// 	printf("breaking news\n");
+		// if (i > 270) {
+		// 	for (int i = 0; i < 16; i++) {
+		// 		printf("reg: %d: %d\n", i, chip8.registers[i]);
+		// 	}
 		// 	break;
 		// }
 	}
+}
+
+void Window::run_main_loop()
+{
+	std::thread worker(&Window::main_loop, this);
+	worker.detach();
 }
 
 int Window::get_minimum_width() {

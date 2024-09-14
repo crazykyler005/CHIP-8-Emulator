@@ -39,6 +39,7 @@ public:
 	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable
 	// uint64_t px_states[32] = {};
 	uint8_t px_states[64 * 32] = {};	
+	uint8_t registers[16] = {};
 
 private:
 	void run_instruction();
@@ -87,7 +88,6 @@ private:
 	inline static const uint8_t SPRITE_PX_WIDTH = 8;
 
 	uint8_t memory[4096] = {};
-	uint8_t registers[16] = {};
 
 	// stack is used to remeber the current location before a jump operation is made
 	// the program counter gets stored in the stack

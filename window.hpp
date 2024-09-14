@@ -25,6 +25,7 @@ class Window : public Gtk::Window
 public:
 	Window();
 	void main_loop();
+	void run_main_loop();
 	int get_minimum_width();
 	int get_minimum_height();
 	bool on_key_pressed(guint keyval, guint keycode, Gdk::ModifierType state);

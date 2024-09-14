@@ -18,6 +18,8 @@ Chip8::Chip8() {
 void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 	// Reset register VF
 	registers[0xF] = 0;
+	// printf("x: %d, y: %d\n", x, y);
+
 
 	for (uint8_t yline = 0; yline < pix_height; yline++)
 	{
@@ -90,10 +92,11 @@ bool Chip8::load_program(std::string file_path) {
 void Chip8::run_instruction() {
 
 	uint16_t opcode = (static_cast<uint16_t>(memory[program_ctr]) << 8) + memory[program_ctr + 1];
-	// printf("opcode: %x\n", opcode);
 
 	uint8_t VX_reg = (opcode >> 8) & 0xF; // 3rd nibble
 	uint8_t VY_reg = (opcode >> 4) & 0xF; // 2nd nibble
+
+	// printf("opcode: %x, i: %d, pc: %d, reg[vx]: %d, VX_reg: %d\n", opcode, index_reg, program_ctr, registers[VX_reg], VX_reg);
 
 	uint8_t sub_opcode = 0;
 
@@ -123,26 +126,27 @@ void Chip8::run_instruction() {
 
 		case 0x1000: // 1NNN
 			// jump to addr at 0NNN
-			program_ctr = 0x0FFF & opcode;
+			program_ctr = opcode & 0x0FFF;
 			return;
 
 		case 0x2000: // 2NNN
 			// call subroutine at 0NNN
 			// stack[stack_ptr] = program_ctr;
 			stack.push_back(program_ctr);
-			program_ctr = 0x0FFF & opcode;
+			program_ctr =  opcode & 0x0FFF;
 			return;
 
 		case 0x3000: // 3XNN
 			// Skips the next instruction if VX equals NN (usually the next instruction is a jump to skip a code block)
-			if (opcode & 0xFF == registers[VX_reg]) {
+			if ((opcode & 0xFF) == registers[VX_reg]) {
 				program_ctr += 2;
 			}
+
 			break;
 
 		case 0x4000: // 4XNN
 			// Skips the next instruction if VX does not equal NN (usually the next instruction is a jump to skip a code block)
-			if (opcode & 0xFF != registers[VX_reg]) {
+			if ((opcode & 0xFF) != registers[VX_reg]) {
 				program_ctr += 2;
 			}
 
@@ -158,12 +162,12 @@ void Chip8::run_instruction() {
 
 		case 0x6000: // 6XNN
 			// Sets VX to NN
-			registers[VX_reg] = (0xFF & opcode);
+			registers[VX_reg] = (opcode & 0xFF);
 			break;
 
 		case 0x7000: // 7XNN
 			// Adds NN to VX (carry flag is not changed)
-			registers[VX_reg] += opcode & 0xFF;
+			registers[VX_reg] += (opcode & 0xFF);
 			break;
 
 		case 0x8000: // Sets VX to the value of VY
@@ -171,7 +175,7 @@ void Chip8::run_instruction() {
 			// NOTE: 8XY3, 8XY6, 8XY7 and 8XYE were not documented in the original CHIP-8
 			// specification so they may never end up being used
 
-			sub_opcode = opcode & 0xF; //arithmetic operation
+			sub_opcode = (opcode & 0xF); //arithmetic operation
 
 			if (sub_opcode == 0) {
 				registers[VX_reg] = registers[VY_reg];
@@ -240,14 +244,19 @@ void Chip8::run_instruction() {
 
 		case 0xE000:
 			// Skips the next instruction if the key stored in VX is pressed (usually the next instruction is a jump to skip a code block)
-			if (((opcode & 0xFF) == 0x9E) && (keys_pressed[registers[VX_reg]] == true)) {
-				program_ctr += 2;
+			if ((opcode & 0xFF) == 0x9E) {
+				if (keys_pressed[registers[VX_reg]] == true) {
+					program_ctr += 2;
+				}
 			}
 			// Skips the next instruction if the key stored in VX is not pressed (usually the next instruction is a jump to skip a code block)
-			else if (((opcode & 0xFF) == 0xA1) && (keys_pressed[registers[VX_reg]] == false)) {
-				program_ctr += 2;
+			else if ((opcode & 0xFF) == 0xA1) {
+				if (keys_pressed[registers[VX_reg]] == false) {
+					program_ctr += 2;
+				}
+
 			} else {
-				printf("Unsupported opcode\n");
+				printf("\nUnknown op code: %.4X\n", opcode);
 			}
 			break;
 
@@ -265,7 +274,7 @@ void Chip8::run_instruction() {
 
 				for(uint8_t i = 0; i < 16; i++)
 				{
-					if(keys_pressed[i])
+					if (keys_pressed[i])
 					{
 						registers[VX_reg] = i;
 						key_pressed = true;
@@ -313,8 +322,11 @@ void Chip8::run_instruction() {
 
 			// Stores from V0 to VX (including VX) in memory, starting at address I. The offset
 			// from I is increased by 1 for each value written, but I itself is left unmodified.
+
+			// Before the CHIP-8 interpreters CHIP48 and SUPER-CHIP (1970s - 1980s), the I register
+			// was incremented each time it stored or loaded one register. (I += X + 1).
 			} else if (sub_opcode == 0x55) {
-				for (uint8_t i = 0; i <= registers[VX_reg]; i++) {
+				for (uint8_t i = 0; i <= VX_reg; i++) {
 					memory[index_reg + i] = registers[i];
 				}
 
@@ -322,12 +334,16 @@ void Chip8::run_instruction() {
 					lowest_mem_addr_updated = index_reg;
 				}
 
+				index_reg += VX_reg + 1;
+
 			// Fills from V0 to VX (including VX) with values from memory, starting at address I.
 			// The offset from I is increased by 1 for each value read, but I itself is left unmodified.
 			} else if (sub_opcode == 0x65) {
-				for (uint8_t i = 0; i <= registers[VX_reg]; i++) {
+				for (uint8_t i = 0; i <= VX_reg; i++) {
 					registers[i] = memory[index_reg + i];
 				}
+
+				index_reg += VX_reg + 1;
 			}
 			break;
 
