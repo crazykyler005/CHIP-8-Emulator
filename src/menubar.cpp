@@ -131,12 +131,10 @@ void MenuBar::on_menu_file_load()
 void MenuBar::on_file_dialog_finish(const Glib::RefPtr<Gio::AsyncResult>& result,
 	const Glib::RefPtr<Gtk::FileDialog>& dialog)
 {
-  // Handle the response:
 	try
 	{
 		auto file = dialog->open_finish(result);
 
-		// Notice that this is a std::string, not a Glib::ustring.
 		auto filename = file->get_basename();
 		auto file_path = file->get_path();
 		std::cout << "File path: " <<  file_path << std::endl;
@@ -147,13 +145,9 @@ void MenuBar::on_file_dialog_finish(const Glib::RefPtr<Gio::AsyncResult>& result
 
 		_parent_window.set_title(Chip8::DEFAULT_TITLE + " - " + filename);
 		_parent_window.run_main_loop();
-
-		printf("test\n");
-
 	}
 	catch (const Gtk::DialogError& err)
 	{
-		// Can be thrown by dialog->open_finish(result).
 		std::cout << "No file selected. " << err.what() << std::endl;
 	}
 	catch (const Glib::Error& err)
@@ -208,5 +202,4 @@ void MenuBar::on_menu_update_resolution(int i)
 
 	// TODO: figure out why this doesn't update the window dimensions if the same resolution setting is selected more than once
 	_parent_window.set_default_size(Chip8::native_width * i, updated_screen_height + _height + current_titlebar_height);
-	printf("test\n");
 }

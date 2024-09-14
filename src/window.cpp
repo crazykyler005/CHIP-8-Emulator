@@ -54,7 +54,7 @@ void Window::main_loop()
 			chip8.play_sfx = false;
 		}
 
-		auto duration = std::chrono::microseconds(Chip8::MICRO_SECONDS_PER_FRAME);
+		static const auto duration = std::chrono::microseconds(Chip8::MICRO_SECONDS_PER_FRAME);
 		// Get the current time as a time_point
 		auto current_time = std::chrono::steady_clock::now();
 		// Calculate the time_point to sleep until
