@@ -13,7 +13,7 @@ include_directories(${GTKMM_INCLUDE_DIRS})
 # Add compiler flags (in case include directories are not automatically applied)
 add_compile_options(${GTKMM_CFLAGS_OTHER})
 
-add_executable(test
+add_executable(chip8
     src/main.cpp
     src/window.cpp
     src/screen.cpp
@@ -23,7 +23,7 @@ add_executable(test
 )
 
 # Link GTKmm libraries
-target_link_libraries(test ${GTKMM_LIBRARIES})
+target_link_libraries(chip8 ${GTKMM_LIBRARIES})
 
 # Resolve link directories and libraries if needed
 link_directories(${GTKMM_LIBRARY_DIRS})

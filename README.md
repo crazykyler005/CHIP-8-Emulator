@@ -22,10 +22,22 @@ You need install gtkmm-4.0 to get this to compile
 Download instruction are listed here: https://gtkmm.org/en/download.html
 
 ## Running the application
-Run the following terminal commands in the root directory of the repo
+To run the application you need to first generate the make file but running the following terminal commands in the root directory of the repo
 
 ```
 mkdir build
 cd build
 cmake ..
+```
+
+Next build the application
+
+```
+make
+```
+
+Run the executable
+
+```
+./chip8
 ```
