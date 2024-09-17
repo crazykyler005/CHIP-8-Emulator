@@ -1,5 +1,6 @@
 #include "window.hpp"
 #include "menubar.hpp"
+#include "helper_functions.hpp"
 #include <thread>
 
 Window::Window()
@@ -54,23 +55,7 @@ void Window::main_loop()
 			chip8.play_sfx = false;
 		}
 
-		static const auto duration = std::chrono::microseconds(Chip8::MICRO_SECONDS_PER_FRAME);
-		// Get the current time as a time_point
-		auto current_time = std::chrono::steady_clock::now();
-		// Calculate the time_point to sleep until
-		auto sleep_time = current_time + duration;
-
-		std::this_thread::sleep_until(sleep_time);
-		// g_usleep(Chip8::MICRO_SECONDS_PER_FRAME);
-
-		// test code
-		// i++;
-		// if (i > 270) {
-		// 	for (int i = 0; i < 16; i++) {
-		// 		printf("reg: %d: %d\n", i, chip8.registers[i]);
-		// 	}
-		// 	break;
-		// }
+		sleep_thread_microseconds(Chip8::MICRO_SECONDS_PER_FRAME);
 	}
 }
 
