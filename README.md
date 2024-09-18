@@ -24,7 +24,7 @@ You can download the latest version here: https://github.com/libsdl-org/SDL/rele
 apt-get install libsdl2-dev
 ```
 
-You also need ImGuiFileDialog which can be found (here)[https://github.com/aiekick/ImGuiFileDialog] and you'll need to download the following files from it and put them into the lib/imgui submodule folder
+You also need ImGuiFileDialog which can be found [here](https://github.com/aiekick/ImGuiFileDialog) and you'll need to download the following files from it and put them into the lib/imgui submodule folder
 ```
 ImGuiFileDialog.cpp
 ImGuiFileDialog.h
