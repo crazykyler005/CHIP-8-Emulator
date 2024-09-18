@@ -29,9 +29,7 @@ You also need ImGuiFileDialog which can be found (here)[https://github.com/aieki
 ImGuiFileDialog.cpp
 ImGuiFileDialog.h
 ImGuiFileDialogConfig.cpp
-
 ```
-
 
 ## Running the application
 To run the application you need to first generate the make file but running the following terminal commands in the root directory of the repo
