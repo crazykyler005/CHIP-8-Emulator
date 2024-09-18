@@ -39,18 +39,14 @@ void Screen::render()
 	float pixel_height = (drawArea_end.y - drawArea_start.y) / static_cast<float>(_chip8_ptr->native_height);
 	float pixel_width = (drawArea_end.x - drawArea_start.x) / static_cast<float>(_chip8_ptr->native_width);
 
-    // Draw the rectangle
+    // Draw each pixel
 	for (uint8_t i = 0; i < _chip8_ptr->native_height; i++) {
 		for (uint8_t j = 0; j < _chip8_ptr->native_width; j++) {
 			if (_chip8_ptr->px_states[(i * _chip8_ptr->native_width) + j] == 1) {
 				ImVec2 x_y = ImVec2(drawArea_start.x + (j * pixel_width), drawArea_start.y + (i * pixel_height));
 				ImVec2 px_x_y = ImVec2(x_y.x + pixel_width, x_y.y + pixel_height);
 
-				//cr->rectangle(j * pixel_width, i * pixel_height, pixel_width, pixel_height);
 				draw_list->AddRectFilled(x_y, px_x_y, color);
-				// printf("\ndrawing\n");
-				// printf("x: %f, y: %f\n", x_y.x, x_y.y);
-				// printf("px_x: %f, px_y: %f\n", px_x_y.x, px_x_y.y);
 			}
 		}
 	}

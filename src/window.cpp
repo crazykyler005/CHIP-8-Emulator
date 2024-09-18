@@ -21,8 +21,6 @@ int Window::init() {
 		return -1;
 	}
 
-	printf("test\n");
-
 	window_ptr = SDL_CreateWindow(
 		"window",
 		SDL_WINDOWPOS_CENTERED,
@@ -37,8 +35,6 @@ int Window::init() {
 		return -1;
 	}
 
-	printf("test\n");
-
 	renderer_ptr = SDL_CreateRenderer(window_ptr, -1, 0);
 
 	if (!renderer_ptr) {
@@ -46,8 +42,6 @@ int Window::init() {
 		SDL_Quit();
 		return -1;
 	}
-
-	printf("test\n");
 
 	// init imgui
 	IMGUI_CHECKVERSION();
@@ -59,11 +53,7 @@ int Window::init() {
 		renderer_ptr
 	);
 
-	printf("test\n");
-
 	ImGui_ImplSDLRenderer2_Init(renderer_ptr);
-
-	printf("test\n");
 
 	return 0;
 }
@@ -112,33 +102,28 @@ void Window::main_loop()
 
 void Window::game_loop()
 {
-	// uint16_t i = 0;
-
 	while (chip8.is_running) {
-		if (!chip8.is_paused) {
-			// printf("%d ", i);
-			chip8.run();
-
-			if (chip8.is_paused) {
-				return;
-			}
-
-			// if (chip8.draw_flag) {
-			// 	// screen.queue_draw();
-			// 	chip8.draw_flag = false;
-			// }
-
-			if (chip8.play_sfx) {
-				// TODO: play sound effect
-				// printf("BEEP!\n");
-				// play_a_sound();
-				chip8.play_sfx = false;
-			}
-
-			sleep_thread_microseconds(Chip8::MICRO_SECONDS_PER_FRAME);
-		} else {
+		if (chip8.is_paused) {
 			sleep_thread_microseconds(500000);
+			printf("is paused\n");
+			continue;
 		}
+
+		chip8.run();
+
+		// if (chip8.draw_flag) {
+		// 	// screen.queue_draw();
+		// 	chip8.draw_flag = false;
+		// }
+
+		if (chip8.play_sfx) {
+			// TODO: play sound effect
+			// printf("BEEP!\n");
+			// play_a_sound();
+			chip8.play_sfx = false;
+		}
+
+		sleep_thread_microseconds(Chip8::MICRO_SECONDS_PER_FRAME);
 	}
 }
 

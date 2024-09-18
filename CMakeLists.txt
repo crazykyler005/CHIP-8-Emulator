@@ -36,8 +36,4 @@ add_executable(chip8
     src/helper_functions.cpp
 )
 
-# Link GTKmm libraries
-target_link_libraries(chip8 ${SDL2_LIBRARIES} ${GTKMM_LIBRARIES})
-
-# Resolve link directories and libraries if needed
-link_directories(${GTKMM_LIBRARY_DIRS})
+target_link_libraries(chip8 ${SDL2_LIBRARIES})

@@ -385,11 +385,10 @@ void Chip8::run()
 // - 2 byte lowest memory address update by the program/game
 // - x byte memory from lowest memory address overwritten and onward
 // - TODO: add a CRC to the end of the file and check if it is valid when loading it
-bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp) {
-
-	printf("test\n");
-
+bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp) 
+{
 	return false;
+
 	if (program_name.size() == 0) {
 		return false;
 	}
