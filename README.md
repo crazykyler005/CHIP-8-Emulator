@@ -1,4 +1,4 @@
-This is an incomplement c++ Chip-8 emulator that uses GTK for rendering and detecting keyboard input. 
+This is an incomplement c++ Chip-8 emulator that uses SLD2 for rendering, keyboard input and sound and ImGui for creating the menubar as well as rendering. 
 
 ## Planned Features
 Sound fx
