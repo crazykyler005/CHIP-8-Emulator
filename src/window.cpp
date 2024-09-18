@@ -66,7 +66,7 @@ void Window::main_loop()
 			if (e.type == SDL_QUIT) {
 				running = false;
 			} else if (e.type == SDL_KEYDOWN) {
-				on_key_press_event(static_cast<SDL_KeyCode>(e.key.keysym.sym), static_cast<SDL_Keymod>(e.key.keysym.mod));
+				on_key_press_event(e.key.keysym);
 			}
 
 			ImGui_ImplSDL2_ProcessEvent(&e);
@@ -157,38 +157,42 @@ int Window::get_minimum_height() {
 	return (chip8.native_height * 4) + _native_menubar_height + titlebar_height;
 }
 
-bool Window::on_key_press_event(SDL_KeyCode key_code, SDL_Keymod modifier)
+void Window::on_key_press_event(const SDL_Keysym& key_info)
 {
-	for (uint8_t i = 0; i < key_map.size(); i++) {
+	auto& char_pressed = key_info.sym;
+	auto& modifier = key_info.mod;
 
-		if ((key_map[i] == key_code) &&
-			// if ctrl or alt modifiers are used, mark key as un-pressed
-			((modifier & (KMOD_CTRL | KMOD_ALT)) == (modifier & KMOD_NONE))
-		) {
-			chip8.keys_pressed[i] = true;
+	// if ctrl or alt modifiers are used, when a key within 
+	// the key_map is pressed, it's considered invalid
+	if ((modifier & (KMOD_CTRL | KMOD_ALT)) == KMOD_NONE) {
+		for (uint8_t i = 0; i < key_map.size(); i++) {
 
-			printf("Valid key press\n");
-			return true;
+			// if the physical position of the pressed key matches an accepted postion
+			if (key_map[i] == SDL_GetScancodeFromKey(char_pressed)) {
+				chip8.keys_pressed[i] = true;
+
+				printf("Valid key press\n");
+				return;
+			}
 		}
-	}
 
-	if (((modifier & ~(KMOD_CTRL | KMOD_ALT)) == KMOD_NONE) &&
+	} else if (((modifier & ~(KMOD_CTRL | KMOD_ALT)) == KMOD_NONE) &&
 		((modifier & (KMOD_CTRL)) == KMOD_CTRL)) {
-		if (key_code == SDLK_s) {
+		if (char_pressed == SDLK_s) {
 
-		} else if (key_code == SDLK_l) {
+		} else if (char_pressed == SDLK_l) {
 
-		} else if (key_code == SDLK_p) {
+		} else if (char_pressed == SDLK_p) {
 
 		}
 
 		printf("Valid ctrl press\n");
-		return true;
+		return;
 	}
 
-	printf("char: %c, state: %d\n", key_code, modifier);
+	printf("char: %c, state: %d\n", char_pressed, modifier);
 
-  	return false;
+  	return;
 }
 
 void Window::play_a_sound()
