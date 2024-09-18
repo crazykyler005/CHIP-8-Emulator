@@ -19,7 +19,7 @@ A menu bar with the following options:
 ## Requirements
 You need install sdl2 to get this to compile
 
-You can download the latest version here: https://github.com/libsdl-org/SDL/releases/ or install it directly on linux the following command:
+You can download the latest version [here](https://github.com/libsdl-org/SDL/releases/) or install it directly on linux the following command:
 ```
 apt-get install libsdl2-dev
 ```
