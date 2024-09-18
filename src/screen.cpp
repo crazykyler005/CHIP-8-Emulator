@@ -1,44 +1,57 @@
 #include "screen.hpp"
-#include <cairomm/context.h>
-#include <gtkmm.h>
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_sdlrenderer2.h>
+#include "ImGuiFileDialog.h"
+
 
 Screen::Screen(Chip8* chip8_pointer)
 	: _chip8_ptr(chip8_pointer)
 {
-	// using full size of window
-	set_hexpand(true);
-	set_halign(Gtk::Align::FILL);
-	set_vexpand(true);
-	set_valign(Gtk::Align::FILL);
-
-	set_draw_func(sigc::mem_fun(*this, &Screen::on_draw));
 }
 
 Screen::~Screen()
 {
 }
 
-void Screen::on_draw(const Cairo::RefPtr<Cairo::Context>& cr, int width, int height)
+void Screen::render()
 {
-	double pixel_height = static_cast<double>(height) / static_cast<double>(_chip8_ptr->native_height);
-	double pixel_width = static_cast<double>(width) / static_cast<double>(_chip8_ptr->native_width);
+	// Get the draw list for the current ImGui window
+    ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
-	Gdk::RGBA bg_color;
-	bg_color.set_rgba(0.0, 0.8, 0.9, 1.0);
+	// Get the position of the current window (top-left corner)
+	ImVec2 screen_pos = ImGui::GetMainViewport()->Pos;
 
-	// Set the color in the Cairo context
-	cr->set_source_rgba(bg_color.get_red(), bg_color.get_green(), bg_color.get_blue(), bg_color.get_alpha());
-	cr->paint();
+	// Get the height of the menu bar
+	float menu_bar_height = ImGui::GetFrameHeight();
 
-	cr->set_source_rgb(0.8, 0.6, 0.0);
+	// Define the drawing position below the menu bar
+    ImVec2 drawArea_start = ImVec2(screen_pos.x, screen_pos.y + menu_bar_height);  // Offset by menu bar height
 
+	// Get the bottom-right position of the main viewport
+    ImVec2 drawArea_end = ImGui::GetMainViewport()->Pos;
+    drawArea_end.x += ImGui::GetMainViewport()->Size.x;
+    drawArea_end.y += ImGui::GetMainViewport()->Size.y;
+
+    // Define color (RGBA)
+    ImU32 color = IM_COL32(0, 255, 0, 255);  // Red color with full opacity
+
+	float pixel_height = (drawArea_end.y - drawArea_start.y) / static_cast<float>(_chip8_ptr->native_height);
+	float pixel_width = (drawArea_end.x - drawArea_start.x) / static_cast<float>(_chip8_ptr->native_width);
+
+    // Draw the rectangle
 	for (uint8_t i = 0; i < _chip8_ptr->native_height; i++) {
 		for (uint8_t j = 0; j < _chip8_ptr->native_width; j++) {
 			if (_chip8_ptr->px_states[(i * _chip8_ptr->native_width) + j] == 1) {
-				cr->rectangle(j * pixel_width, i * pixel_height, pixel_width, pixel_height);
+				ImVec2 x_y = ImVec2(drawArea_start.x + (j * pixel_width), drawArea_start.y + (i * pixel_height));
+				ImVec2 px_x_y = ImVec2(x_y.x + pixel_width, x_y.y + pixel_height);
+
+				//cr->rectangle(j * pixel_width, i * pixel_height, pixel_width, pixel_height);
+				draw_list->AddRectFilled(x_y, px_x_y, color);
+				// printf("\ndrawing\n");
+				// printf("x: %f, y: %f\n", x_y.x, x_y.y);
+				// printf("px_x: %f, px_y: %f\n", px_x_y.x, px_x_y.y);
 			}
 		}
 	}
-
-	cr->fill();
 }

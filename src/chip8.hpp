@@ -32,6 +32,7 @@ public:
 	bool keys_pressed[16] = {};
 	bool draw_flag = false;
 	bool is_paused = false;
+	bool is_running = false;
 	bool _0xFX1E_overflow_enabled = false;
 	bool play_sfx = false;
 
