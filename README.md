@@ -1,4 +1,4 @@
-This is an incomplement c++ Chip-8 emulator that uses SLD2 for rendering, keyboard input and sound and ImGui for creating the menubar as well as rendering. 
+This is an incomplement c++ Chip-8 emulator that uses SLD2 for rendering, keyboard input and sound and ImGui for creating the menubar and the file dialog window. 
 
 ## Planned Features
 Sound fx
