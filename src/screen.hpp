@@ -6,7 +6,7 @@ class Screen
 public:
 	Screen(Chip8* chip8_pointer);
 	virtual ~Screen();
-	void render();
+	void draw_pixels();
 
 private:
 	Chip8* _chip8_ptr;

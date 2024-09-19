@@ -31,13 +31,14 @@ class Window
 {
 public:
 	Window();
+	~Window();
 	int init();
 	void main_loop();
 	int get_minimum_width();
 	int get_minimum_height();
 	void start_game_loop();
 	void game_loop();
-	void on_key_press_event(const SDL_Keysym& key_info);
+	void on_key_event(const SDL_Keysym& key_info, bool is_press_event);
 	void play_a_sound();
 	void play_sound();
 

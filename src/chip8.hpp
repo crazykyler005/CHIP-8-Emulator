@@ -26,7 +26,9 @@ public:
 	// 64 pixels width by 32 pixels height
 	inline static const uint8_t native_width = 64;
 	inline static const uint8_t native_height = 32;
-	inline static const time_t MICRO_SECONDS_PER_FRAME = (1/60) * 1000000;
+
+	inline static const time_t HZ_PER_SECOND = 60;
+
 	inline static const std::string DEFAULT_TITLE = "Chip-8 Emulator";
 
 	bool keys_pressed[16] = {};
@@ -35,6 +37,7 @@ public:
 	bool is_running = false;
 	bool _0xFX1E_overflow_enabled = false;
 	bool play_sfx = false;
+	uint16_t opcodes_per_second = 600;
 
 	// TODO: optimise how pixel states are stored by changing the above array to the following 
 	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable

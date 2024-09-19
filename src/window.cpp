@@ -8,11 +8,28 @@ static void my_audio_callback(void *userdata, Uint8 *stream, int len);
 static uint32_t audio_len;
 static uint8_t *audio_pos;
 
+constexpr time_t MICROSECONDS_IN_A_SECOND = 1000000;
+
 Window::Window()
  	: m_menubar(std::make_unique<MenuBar>(&chip8, *this)),
 	screen(&chip8)
 {
 
+}
+
+Window::~Window()
+{
+	if (!renderer_ptr && !window_ptr) {
+		return;
+	}
+
+	ImGui_ImplSDLRenderer2_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
+
+	SDL_DestroyRenderer(renderer_ptr);
+	SDL_DestroyWindow(window_ptr);
+	SDL_Quit();
 }
 
 int Window::init() {
@@ -66,7 +83,9 @@ void Window::main_loop()
 			if (e.type == SDL_QUIT) {
 				running = false;
 			} else if (e.type == SDL_KEYDOWN) {
-				on_key_press_event(e.key.keysym);
+				on_key_event(e.key.keysym, true);
+			} else if (e.type == SDL_KEYUP) {
+				on_key_event(e.key.keysym, false);
 			}
 
 			ImGui_ImplSDL2_ProcessEvent(&e);
@@ -76,35 +95,27 @@ void Window::main_loop()
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		screen.render();
-		
-		m_menubar->generate();
-
-		ImGui::Render();
+		// adds multiple rectangles to a ImDrawList*
+		screen.draw_pixels();
 
 		SDL_SetRenderDrawColor(renderer_ptr, 120, 180, 255, 255);
 		SDL_RenderClear(renderer_ptr);
+
+		m_menubar->generate();
+
+		ImGui::Render();
 		ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer_ptr);
 
 		SDL_RenderPresent(renderer_ptr);
 
-		// running = false;
 	}
-
-	ImGui_ImplSDLRenderer2_Shutdown();
-	ImGui_ImplSDL2_Shutdown();
-	ImGui::DestroyContext();
-
-	SDL_DestroyRenderer(renderer_ptr);
-	SDL_DestroyWindow(window_ptr);
-	SDL_Quit();
 }
 
 void Window::game_loop()
 {
 	while (chip8.is_running) {
 		if (chip8.is_paused) {
-			sleep_thread_microseconds(500000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			printf("is paused\n");
 			continue;
 		}
@@ -123,7 +134,8 @@ void Window::game_loop()
 			chip8.play_sfx = false;
 		}
 
-		sleep_thread_microseconds(Chip8::MICRO_SECONDS_PER_FRAME);
+		sleep_thread_microseconds(MICROSECONDS_IN_A_SECOND / chip8.opcodes_per_second);
+		// sleep_thread_microseconds(MICROSECONDS_IN_A_SECOND / Chip8::HZ_PER_SECOND);
 	}
 }
 
@@ -157,27 +169,30 @@ int Window::get_minimum_height() {
 	return (chip8.native_height * 4) + _native_menubar_height + titlebar_height;
 }
 
-void Window::on_key_press_event(const SDL_Keysym& key_info)
+void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 {
 	auto& char_pressed = key_info.sym;
 	auto& modifier = key_info.mod;
 
 	// if ctrl or alt modifiers are used, when a key within 
 	// the key_map is pressed, it's considered invalid
-	if ((modifier & (KMOD_CTRL | KMOD_ALT)) == KMOD_NONE) {
+	if (((modifier & (KMOD_CTRL | KMOD_ALT)) == KMOD_NONE)) {
 		for (uint8_t i = 0; i < key_map.size(); i++) {
 
 			// if the physical position of the pressed key matches an accepted postion
 			if (key_map[i] == SDL_GetScancodeFromKey(char_pressed)) {
-				chip8.keys_pressed[i] = true;
+				if (is_press_event) {
+					chip8.keys_pressed[i] = true;
+				} else {
+					chip8.keys_pressed[i] = false;
+				}
 
-				printf("Valid key press\n");
 				return;
 			}
 		}
 
-	} else if (((modifier & ~(KMOD_CTRL | KMOD_ALT)) == KMOD_NONE) &&
-		((modifier & (KMOD_CTRL)) == KMOD_CTRL)) {
+	} else if (is_press_event && ((modifier & ~(KMOD_CTRL | KMOD_ALT)) == KMOD_NONE) &&
+		((modifier & KMOD_CTRL) & KMOD_CTRL)) {
 		if (char_pressed == SDLK_s) {
 
 		} else if (char_pressed == SDLK_l) {
@@ -220,7 +235,6 @@ void adjust_volume(uint8_t* wav_buffer, uint32_t wav_length, SDL_AudioSpec* wav_
             samples[i] = (int16_t)(samples[i] * volume);
         }
     }
-    // You can add cases for other formats like AUDIO_S32LSB or AUDIO_F32 here if needed.
 }
 
 void Window::play_sound()
@@ -235,7 +249,7 @@ void Window::play_sound()
 	uint32_t wav_length;
 
 	if( SDL_LoadWAV(FILE_PATH, &wav_spec, &wav_buffer, &wav_length) == NULL ){
-		printf("failed to find sound file\n");
+		fprintf(stderr, "Failed to find sound file\n");
 		return;
 	}
 
@@ -272,5 +286,5 @@ void Window::play_sound()
 	SDL_CloseAudioDevice(device_id);
 	SDL_FreeWAV(wav_buffer);
 
-	printf("played sound\n");
+	fprintf(stderr, "played sound\n");
 }

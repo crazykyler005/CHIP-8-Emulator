@@ -198,6 +198,9 @@ void Chip8::run_instruction() {
 
 			// Shifts VX to the right by 1, then stores the least significant bit of VX prior to the shift into VF.
 			} else if (sub_opcode == 6) {
+				// CHIP-48 and SUPER-CHIP version skip this first step
+				// registers[VX_reg] = registers[VY_reg];
+
 				registers[0xF] = registers[VX_reg] & 0x1;
 				registers[VX_reg] >>= 1;
 
@@ -208,6 +211,9 @@ void Chip8::run_instruction() {
 
 			// Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset.
 			} else if (sub_opcode == 0xE) {
+				// CHIP-48 and SUPER-CHIP version skip this first step
+				// registers[VX_reg] = registers[VY_reg];
+
 				registers[0xF] = (registers[VX_reg] & 0x80) ? 1 : 0;
 				registers[VX_reg] <<= 1;
 			}
@@ -228,6 +234,9 @@ void Chip8::run_instruction() {
 		case 0xB000: // PC = V0 + NNN
 			// Jumps to the address NNN plus V0
 			program_ctr = registers[0] + (opcode & 0xFFF);
+
+			// CHIP-48 and SUPER-CHIP version (possible bug)
+			// program_ctr = registers[VX_reg] + (opcode & 0xFFF);
 			return;
 
 		case 0xC000: // Vx = rand() & NN
@@ -281,7 +290,7 @@ void Chip8::run_instruction() {
 					}
 				}
 
-				if (key_pressed) {
+				if (!key_pressed) {
 					return;
 				}
 			}
@@ -361,9 +370,8 @@ void Chip8::countdown_timers()
 
 	if (sound_timer > 0)
 		if(sound_timer == 1);
-			play_sfx = false;
+			// play_sfx = true;
 
-		// TODO: Implement sound
 		--sound_timer;
 }
 

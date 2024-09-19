@@ -14,7 +14,7 @@ Screen::~Screen()
 {
 }
 
-void Screen::render()
+void Screen::draw_pixels()
 {
 	// Get the draw list for the current ImGui window
     ImDrawList* draw_list = ImGui::GetForegroundDrawList();
