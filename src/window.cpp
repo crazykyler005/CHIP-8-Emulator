@@ -76,7 +76,7 @@ int Window::init() {
 void Window::main_loop() 
 {
 	// prevents last selected menubar dropdowns from staying on the screen
-	screen.generate_texture();
+	screen.update_texture();
 
 	while (running) {
 		SDL_Event e;
@@ -98,7 +98,7 @@ void Window::main_loop()
 
 		if (update_texture) {
             std::lock_guard<std::mutex> lock(mtx);  // Lock to avoid race conditions
-            screen.generate_texture();  // Update the texture on the main thread
+            screen.update_texture();  // Update the texture on the main thread
             update_texture = false;  // Reset the flag
         }
 		
