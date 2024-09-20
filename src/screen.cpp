@@ -9,6 +9,16 @@
 Screen::Screen(Chip8* chip8_pointer, Window& parent_window)
 	: _chip8_ptr(chip8_pointer), _parent_window(parent_window)
 {
+
+}
+
+
+Screen::~Screen()
+{
+}
+
+void Screen::generate_texture()
+{
 	SDL_Texture* texture = SDL_CreateTexture(
 		_parent_window.renderer_ptr,
 		SDL_PIXELFORMAT_RGBA32,
@@ -16,10 +26,8 @@ Screen::Screen(Chip8* chip8_pointer, Window& parent_window)
 		_chip8_ptr->native_width,
 		_chip8_ptr->native_height
 	);
-}
 
-Screen::~Screen()
-{
+	_texture = texture;
 }
 
 void Screen::update_texture()
@@ -37,7 +45,17 @@ void Screen::update_texture()
 		}
 	}
 
-	SDL_UpdateTexture(_texture, NULL, pixels, _chip8_ptr->native_width * sizeof(uint32_t));
+	// SDL_Texture* texture = SDL_CreateTexture(
+	// 	_parent_window.renderer_ptr,
+	// 	SDL_PIXELFORMAT_RGBA32,
+	// 	SDL_TEXTUREACCESS_STREAMING,
+	// 	_chip8_ptr->native_width,
+	// 	_chip8_ptr->native_height
+	// );
+
+	SDL_UpdateTexture(get_texture(), NULL, pixels, _chip8_ptr->native_width * sizeof(uint32_t));
+
+	//_texture = texture;
 }
 
 SDL_FRect Screen::get_texture_dimensions()

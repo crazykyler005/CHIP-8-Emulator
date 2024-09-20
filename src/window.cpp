@@ -70,6 +70,8 @@ int Window::init() {
 
 	ImGui_ImplSDLRenderer2_Init(renderer_ptr);
 
+	screen.generate_texture();
+
 	return 0;
 }
 

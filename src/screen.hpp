@@ -9,6 +9,7 @@ class Screen
 public:
 	Screen(Chip8* chip8_pointer, Window& parent_window);
 	virtual ~Screen();
+	void generate_texture();
 	void update_texture();
 	SDL_Texture* get_texture() { return _texture; };
 	SDL_FRect get_texture_dimensions();
