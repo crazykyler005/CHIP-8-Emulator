@@ -1,12 +1,13 @@
 #include "screen.hpp"
+#include "window.hpp"
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_sdlrenderer2.h>
 #include "ImGuiFileDialog.h"
+#include <SDL2/SDL.h>
 
-
-Screen::Screen(Chip8* chip8_pointer)
-	: _chip8_ptr(chip8_pointer)
+Screen::Screen(Chip8* chip8_pointer, Window& parent_window)
+	: _chip8_ptr(chip8_pointer), _parent_window(parent_window)
 {
 }
 
@@ -14,40 +15,34 @@ Screen::~Screen()
 {
 }
 
-void Screen::draw_pixels()
+void Screen::generate_texture()
 {
-	// Get the draw list for the current ImGui window
-    ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+	uint32_t* pixels = new uint32_t[_chip8_ptr->native_width * _chip8_ptr->native_height];
 
-	// Get the position of the current window (top-left corner)
-	ImVec2 screen_pos = ImGui::GetMainViewport()->Pos;
-
-	// Get the height of the menu bar
-	float menu_bar_height = ImGui::GetFrameHeight();
-
-	// Define the drawing position below the menu bar
-    ImVec2 drawArea_start = ImVec2(screen_pos.x, screen_pos.y + menu_bar_height);  // Offset by menu bar height
-
-	// Get the bottom-right position of the main viewport
-    ImVec2 drawArea_end = ImGui::GetMainViewport()->Pos;
-    drawArea_end.x += ImGui::GetMainViewport()->Size.x;
-    drawArea_end.y += ImGui::GetMainViewport()->Size.y;
-
-    // Define color (RGBA)
-    ImU32 color = IM_COL32(0, 255, 0, 255);  // Red color with full opacity
-
-	float pixel_height = (drawArea_end.y - drawArea_start.y) / static_cast<float>(_chip8_ptr->native_height);
-	float pixel_width = (drawArea_end.x - drawArea_start.x) / static_cast<float>(_chip8_ptr->native_width);
-
-    // Draw each pixel
-	for (uint8_t i = 0; i < _chip8_ptr->native_height; i++) {
-		for (uint8_t j = 0; j < _chip8_ptr->native_width; j++) {
-			if (_chip8_ptr->px_states[(i * _chip8_ptr->native_width) + j] == 1) {
-				ImVec2 x_y = ImVec2(drawArea_start.x + (j * pixel_width), drawArea_start.y + (i * pixel_height));
-				ImVec2 px_x_y = ImVec2(x_y.x + pixel_width, x_y.y + pixel_height);
-
-				draw_list->AddRectFilled(x_y, px_x_y, color);
-			}
+	// Fill pixel buffer with data
+	for (int i = 0; i < _chip8_ptr->native_width * _chip8_ptr->native_height; i++) {
+		if (_chip8_ptr->px_states[i]) {
+			pixels[i] = SDL_MapRGBA(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32), 255, 0, 0, 255);  // Red color
+		} else {
+			pixels[i] = SDL_MapRGBA(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32), 0, 0, 0, 255);  // Red color
 		}
 	}
+
+	SDL_Texture* texture = SDL_CreateTexture(_parent_window.renderer_ptr, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, _chip8_ptr->native_width, _chip8_ptr->native_height);
+	SDL_UpdateTexture(texture, NULL, pixels, _chip8_ptr->native_width * sizeof(uint32_t));
+
+	_texture = texture;
+}
+
+SDL_FRect Screen::get_texture_dimensions()
+{
+	float menu_bar_height = ImGui::GetFrameHeight();
+
+	SDL_FRect dstRect;
+	dstRect.x = 0;        							// X position on the screen
+	dstRect.y = menu_bar_height;        			// Y position on the screen
+	dstRect.w = ImGui::GetMainViewport()->Size.x;   // Width of the texture
+	dstRect.h = ImGui::GetMainViewport()->Size.y;   // Height of the texture
+
+	return dstRect;
 }

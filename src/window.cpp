@@ -9,10 +9,11 @@ static uint32_t audio_len;
 static uint8_t *audio_pos;
 
 constexpr time_t MICROSECONDS_IN_A_SECOND = 1000000;
+std::mutex mtx;
 
 Window::Window()
  	: m_menubar(std::make_unique<MenuBar>(&chip8, *this)),
-	screen(&chip8)
+	screen(&chip8, *this)
 {
 
 }
@@ -95,11 +96,15 @@ void Window::main_loop()
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		// adds multiple rectangles to a ImDrawList*
-		screen.draw_pixels();
-
-		SDL_SetRenderDrawColor(renderer_ptr, 120, 180, 255, 255);
-		SDL_RenderClear(renderer_ptr);
+		if (chip8.draw_flag) {
+			mtx.lock();
+			chip8.draw_flag = false;
+			screen.generate_texture();
+			mtx.unlock();
+		}
+		
+		auto dstRect = screen.get_texture_dimensions();
+		SDL_RenderCopyF(renderer_ptr, screen.get_texture(), NULL, &dstRect);
 
 		m_menubar->generate();
 
@@ -107,7 +112,6 @@ void Window::main_loop()
 		ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer_ptr);
 
 		SDL_RenderPresent(renderer_ptr);
-
 	}
 }
 
@@ -123,8 +127,10 @@ void Window::game_loop()
 		chip8.run();
 
 		// if (chip8.draw_flag) {
-		// 	// screen.queue_draw();
+		// 	mtx.lock();
 		// 	chip8.draw_flag = false;
+		// 	screen.generate_texture();
+		// 	mtx.unlock();
 		// }
 
 		if (chip8.play_sfx) {

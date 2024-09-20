@@ -26,6 +26,7 @@ enum class ColorScheme : uint8_t { // TODO: use a struct for storing RGB values
 
 // Forward declare MenuBar class
 class MenuBar;
+class Screen;
 
 class Window
 {
