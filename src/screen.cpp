@@ -22,8 +22,10 @@ void Screen::generate_texture()
 	// Fill pixel buffer with data
 	for (int i = 0; i < _chip8_ptr->native_width * _chip8_ptr->native_height; i++) {
 		if (_chip8_ptr->px_states[i]) {
-			pixels[i] = SDL_MapRGBA(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32), 255, 0, 0, 255);  // Red color
+			// Set pixel color to white
+			pixels[i] = SDL_MapRGBA(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32), 255, 255, 255, 255);
 		} else {
+			// Set pixel color to black
 			pixels[i] = SDL_MapRGBA(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32), 0, 0, 0, 255);  // Red color
 		}
 	}
@@ -39,10 +41,10 @@ SDL_FRect Screen::get_texture_dimensions()
 	float menu_bar_height = ImGui::GetFrameHeight();
 
 	SDL_FRect dstRect;
-	dstRect.x = 0;        							// X position on the screen
-	dstRect.y = menu_bar_height;        			// Y position on the screen
-	dstRect.w = ImGui::GetMainViewport()->Size.x;   // Width of the texture
-	dstRect.h = ImGui::GetMainViewport()->Size.y;   // Height of the texture
+	dstRect.x = 0;
+	dstRect.y = menu_bar_height;
+	dstRect.w = ImGui::GetMainViewport()->Size.x;
+	dstRect.h = ImGui::GetMainViewport()->Size.y - menu_bar_height;
 
 	return dstRect;
 }

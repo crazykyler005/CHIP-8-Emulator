@@ -4,12 +4,9 @@
 #include <thread>
 #define FILE_PATH "../sound.wav"
 
-static void my_audio_callback(void *userdata, Uint8 *stream, int len);
-static uint32_t audio_len;
-static uint8_t *audio_pos;
-
-constexpr time_t MICROSECONDS_IN_A_SECOND = 1000000;
 std::mutex mtx;
+
+static bool update_texture = false;
 
 Window::Window()
  	: m_menubar(std::make_unique<MenuBar>(&chip8, *this)),
@@ -43,8 +40,8 @@ int Window::init() {
 		"window",
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
-		300,
-		300,
+		chip8.native_width * m_menubar->selected_resolution_multiplier,
+		chip8.native_height * m_menubar->selected_resolution_multiplier,
 		SDL_WINDOW_SHOWN
 	);
 
@@ -78,6 +75,9 @@ int Window::init() {
 
 void Window::main_loop() 
 {
+	// prevents last selected menubar dropdowns from staying on the screen
+	screen.generate_texture();
+
 	while (running) {
 		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
@@ -96,12 +96,11 @@ void Window::main_loop()
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		if (chip8.draw_flag) {
-			mtx.lock();
-			chip8.draw_flag = false;
-			screen.generate_texture();
-			mtx.unlock();
-		}
+		if (update_texture) {
+            std::lock_guard<std::mutex> lock(mtx);  // Lock to avoid race conditions
+            screen.generate_texture();  // Update the texture on the main thread
+            update_texture = false;  // Reset the flag
+        }
 		
 		auto dstRect = screen.get_texture_dimensions();
 		SDL_RenderCopyF(renderer_ptr, screen.get_texture(), NULL, &dstRect);
@@ -117,31 +116,38 @@ void Window::main_loop()
 
 void Window::game_loop()
 {
+	auto fps = std::chrono::microseconds(get_microseconds_in_second() / chip8.HZ_PER_SECOND);
+	auto start_time = std::chrono::steady_clock::now();
+
 	while (chip8.is_running) {
 		if (chip8.is_paused) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			printf("is paused\n");
 			continue;
 		}
 
-		chip8.run();
+		chip8.run_instruction();
 
-		// if (chip8.draw_flag) {
-		// 	mtx.lock();
-		// 	chip8.draw_flag = false;
-		// 	screen.generate_texture();
-		// 	mtx.unlock();
-		// }
+		if (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time) >= fps) {
 
-		if (chip8.play_sfx) {
-			// TODO: play sound effect
-			// printf("BEEP!\n");
-			// play_a_sound();
-			chip8.play_sfx = false;
+			std::lock_guard<std::mutex> lock(mtx);
+
+			start_time = std::chrono::steady_clock::now();
+			chip8.countdown_timers();
+
+			if (chip8.play_sfx) {
+				chip8.play_sfx = false;
+
+				std::thread sound_worker(&Window::play_sound, this);
+				sound_worker.detach();
+			}
+
+			if (chip8.draw_flag) {
+				chip8.draw_flag = false;
+				update_texture = true;
+			}
 		}
 
-		sleep_thread_microseconds(MICROSECONDS_IN_A_SECOND / chip8.opcodes_per_second);
-		// sleep_thread_microseconds(MICROSECONDS_IN_A_SECOND / Chip8::HZ_PER_SECOND);
+		sleep_thread_microseconds(get_microseconds_in_second() / chip8.opcodes_per_second);
 	}
 }
 
@@ -202,7 +208,7 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 		if (char_pressed == SDLK_s) {
 
 		} else if (char_pressed == SDLK_l) {
-
+			
 		} else if (char_pressed == SDLK_p) {
 
 		}
@@ -214,12 +220,6 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 	printf("char: %c, state: %d\n", char_pressed, modifier);
 
   	return;
-}
-
-void Window::play_a_sound()
-{
-	std::thread worker(&Window::play_sound, this);
-	worker.detach();
 }
 
 void adjust_volume(uint8_t* wav_buffer, uint32_t wav_length, SDL_AudioSpec* wav_spec, float volume) {
@@ -245,11 +245,6 @@ void adjust_volume(uint8_t* wav_buffer, uint32_t wav_length, SDL_AudioSpec* wav_
 
 void Window::play_sound()
 {
-	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
-		printf("failed to initialize sound\n");
-		return;
-	}
-
 	SDL_AudioSpec wav_spec;
 	uint8_t* wav_buffer;
 	uint32_t wav_length;
@@ -291,6 +286,4 @@ void Window::play_sound()
 	// shut everything down
 	SDL_CloseAudioDevice(device_id);
 	SDL_FreeWAV(wav_buffer);
-
-	fprintf(stderr, "played sound\n");
 }

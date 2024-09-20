@@ -31,18 +31,21 @@ void MenuBar::add_file_menu()
 	if (ImGui::BeginMenu("File"))
 	{
 		if (ImGui::MenuItem("Load", "Ctrl+O")) {
-			fileDialog.OpenDialog("ChooseFileDlgKey", "Choose File", ".ch8,.txt,.*");
+			if (!fileDialog.IsOpened()) {
+				fileDialog.OpenDialog("ChooseFileDlgKey", "Choose File", ".ch8,.txt,.*");
+
+				if (_chip8_ptr->is_running) {
+					// wait for game loop thread to finish
+					std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_second)) * 2));
+
+					_chip8_ptr->reset();
+				}
+			}
 		}
 
-		if (ImGui::BeginMenu("Load Recent"))
-		{
-			ImGui::MenuItem("fish_hat.c");
-			ImGui::MenuItem("fish_hat.inl");
-			ImGui::MenuItem("fish_hat.h");
-			ImGui::EndMenu();
+		if (ImGui::MenuItem("Reset", NULL, false, _chip8_ptr->is_running)) {
+			on_menu_file_reset();
 		}
-
-		if (ImGui::MenuItem("Reset", NULL, false, false)) {}
 
 		ImGui::Separator();
 		// if (ImGui::BeginMenu("Options"))
@@ -88,7 +91,7 @@ void MenuBar::add_states_menu()
 {
 	if (ImGui::BeginMenu("States"))
 	{
-		if (ImGui::BeginMenu("Save State"))
+		if (ImGui::BeginMenu("Save State", _chip8_ptr->is_running))
 		{
 			for (uint8_t i = 0; i < stateTimestamps.size(); i++) {
 
@@ -101,7 +104,7 @@ void MenuBar::add_states_menu()
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("Load State"))
+		if (ImGui::BeginMenu("Load State", _chip8_ptr->is_running))
 		{
 			for (uint8_t i = 0; i < stateTimestamps.size(); i++) {
 
@@ -126,12 +129,9 @@ void MenuBar::add_settings_menu()
 {
 	if (ImGui::BeginMenu("Settings"))
 	{
-		if (ImGui::MenuItem("Play sound", NULL)) {
-			_parent_window.play_a_sound();
-		}
-		if (ImGui::MenuItem("Pause", NULL, &_chip8_ptr->is_paused)) {
-			on_menu_state_pause();
-		}
+		ImGui::MenuItem("Disable sound", NULL, &_chip8_ptr->sound_disabled);
+
+		if (ImGui::MenuItem("Pause", NULL, &_chip8_ptr->is_paused));
 
 		if (ImGui::BeginMenu("Resolution"))
 		{
@@ -139,7 +139,7 @@ void MenuBar::add_settings_menu()
 
 				auto action_name = "x" + std::to_string(i);
 
-				if (ImGui::MenuItem((action_name).c_str(), NULL)) {
+				if (ImGui::MenuItem((action_name).c_str(), NULL, (i == selected_resolution_multiplier))) {
 					on_menu_update_resolution(i);
 				}
 			}
@@ -186,7 +186,7 @@ void MenuBar::on_menu_file_load()
 
             // You can now use the selected file path here
             printf("Selected file: %s\n", filePathName.c_str());
-			SDL_SetWindowTitle(_parent_window.window_ptr, ("Chip-8 - " + fileDialog.GetCurrentFileName()).c_str());
+			SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->DEFAULT_TITLE + " - " + fileDialog.GetCurrentFileName()).c_str());
 
 			_chip8_ptr->is_running = _chip8_ptr->load_program(filePathName);
 			_parent_window.start_game_loop();
@@ -197,6 +197,18 @@ void MenuBar::on_menu_file_load()
     }
 }
 
+void MenuBar::on_menu_file_reset()
+{
+	_chip8_ptr->is_running = false;
+
+	// wait for game loop thread to finish
+	std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_second)) * 2));
+
+	_chip8_ptr->reset();
+	_chip8_ptr->is_running = true;
+	_parent_window.start_game_loop();
+}
+
 void MenuBar::on_menu_file_quit()
 {
 	_parent_window.close();
@@ -204,16 +216,13 @@ void MenuBar::on_menu_file_quit()
 
 void MenuBar::on_menu_state_save(int i)
 {
-	std::cout << "States -> Save state " + std::to_string(i) << std::endl;
+	// pause the program and create a save state
+	_chip8_ptr->is_paused = true;
+	std::cout << "States -> Creating Save state " + std::to_string(i) << std::endl;
 
 	// need to pause the program here, generate a save state, then resume the application
 	auto utc_timestamp = utc_time_in_seconds();
 	_chip8_ptr->save_program_state(i, utc_timestamp);
-
-	// save_menu_items[i]->set_label("test");
-
-	// TODO: figure out how to update the label of the item after it's been added to the menu
-	// menu_item->set_label("Save State " + std::to_string(state_idx) + " - " + get_time_str(true, utc)).c_str());
 }
 
 void MenuBar::on_menu_state_load(int i)
@@ -222,31 +231,10 @@ void MenuBar::on_menu_state_load(int i)
 	std::cout << "States -> Load state " + std::to_string(i) << std::endl;
 }
 
-void MenuBar::on_menu_state_pause()
-{
-	// if (_chip8_ptr->is_paused) {
-	// 	_parent_window.run_game_loop();
-
-	// 	return;
-	// }
-
-	std::cout << "States -> Pause Program\n";
-}
-
 void MenuBar::on_menu_update_resolution(int i)
 {
+	float menu_bar_height = ImGui::GetFrameHeight();
+	SDL_SetWindowSize(_parent_window.window_ptr, Chip8::native_width * i, menu_bar_height + (Chip8::native_height * i));
 
-	// SDL_DisplayMode dm;
-	// SDL_GetCurrentDisplayMode(0, &DM);
-	// auto Width = DM.w;
-	// auto Height = DM.h;
-
-	// ImGui::GetWindowSize()
-
-	// auto current_screen_height = _parent_window.get_child()->get_height() - _height;
-	// auto current_titlebar_height = _parent_window.get_height() - (current_screen_height + _height);
-	// auto updated_screen_height = Chip8::native_height * i;
-
-	// SDL_SetWindowSize(_parent_window.window_ptr, Chip8::native_width * i, updated_screen_height + _height + current_titlebar_height);
-	SDL_SetWindowSize(_parent_window.window_ptr, Chip8::native_width * i, Chip8::native_width * i);
+	selected_resolution_multiplier = i;
 }

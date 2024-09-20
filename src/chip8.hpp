@@ -16,12 +16,14 @@ public:
 	Chip8();
 
 	void reset();
-	void run();
 	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height);
 
+	void run_instruction();
 	bool load_program(std::string file_path);
 	bool save_program_state(uint8_t state_number, uint32_t utc_timestamp);
 	void load_program_state(std::string file_name);
+
+	void countdown_timers();
 
 	// 64 pixels width by 32 pixels height
 	inline static const uint8_t native_width = 64;
@@ -31,24 +33,25 @@ public:
 
 	inline static const std::string DEFAULT_TITLE = "Chip-8 Emulator";
 
+	uint16_t opcodes_per_second = 600;
+
 	bool keys_pressed[16] = {};
 	bool draw_flag = false;
+
 	bool is_paused = false;
 	bool is_running = false;
-	bool _0xFX1E_overflow_enabled = false;
+
 	bool play_sfx = false;
-	uint16_t opcodes_per_second = 600;
+	bool sound_disabled;
+
+	bool _0xFX1E_overflow_enabled = false;
 
 	// TODO: optimise how pixel states are stored by changing the above array to the following 
 	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable
 	// uint64_t px_states[32] = {};
 	uint8_t px_states[64 * 32] = {};	
-	uint8_t registers[16] = {};
 
 private:
-	void run_instruction();
-	void countdown_timers();
-
 	std::string program_name = "";
 	inline static const std::string SAVE_FILE_EXTENSION = ".sav";
 	// 0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
@@ -67,7 +70,7 @@ private:
 
 	// most programs written for the original system begin at memory location
 	// 0x200 because the interpreter occupied the first 512 bytes
-	inline static const uint16_t program_start_addr = 0x200;
+	inline static const uint16_t PROGRAM_START_ADDR = 0x200;
 
 	inline static uint8_t fontset[80] =
 	{ 
@@ -92,6 +95,7 @@ private:
 	inline static const uint8_t SPRITE_PX_WIDTH = 8;
 
 	uint8_t memory[4096] = {};
+	uint8_t registers[16] = {};
 
 	// stack is used to remeber the current location before a jump operation is made
 	// the program counter gets stored in the stack
@@ -99,7 +103,7 @@ private:
 	std::vector<uint16_t> stack;
 
 	uint16_t index_reg = 0;
-	uint16_t program_ctr = program_start_addr;
+	uint16_t program_ctr = PROGRAM_START_ADDR;
 
 	// used to figure out if we should be saving data from memory into a save state
 	uint16_t lowest_mem_addr_updated = 0xFFF;

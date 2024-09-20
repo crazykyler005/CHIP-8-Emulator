@@ -47,7 +47,7 @@ void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 }
 
 void Chip8::reset() {
-	program_ctr = program_start_addr;
+	program_ctr = PROGRAM_START_ADDR;
 	index_reg = 0;
 
 	// clear stack
@@ -57,14 +57,14 @@ void Chip8::reset() {
 	memset(registers, 0, sizeof(registers));
 
 	// Clear display
-	memset(px_states, 0, sizeof(px_states));
+	memset(px_states, false, sizeof(px_states));
 	draw_flag = true;
 
-	// Clear registers V0-VF
-	memset(registers, 0, sizeof(registers));
-
-	// Clears key_presses
+	// Clear key_presses
 	memset(keys_pressed, false, sizeof(keys_pressed));
+
+	delay_timer = 0;
+	sound_timer = 0;
 
 	is_paused = false;
 	play_sfx = false;
@@ -82,7 +82,7 @@ bool Chip8::load_program(std::string file_path) {
 	
 	memset(memory + sizeof(fontset), 0, sizeof(memory) - sizeof(fontset));
 
-	for (uint16_t addr = program_start_addr; addr < sizeof(memory) && !feof(file); addr++) {
+	for (uint16_t addr = PROGRAM_START_ADDR; addr < sizeof(memory) && !feof(file); addr++) {
 		memory[addr] = fgetc(file);
 	}
 
@@ -180,10 +180,13 @@ void Chip8::run_instruction() {
 			if (sub_opcode == 0) {
 				registers[VX_reg] = registers[VY_reg];
 			} else if (sub_opcode == 1) {
+				//registers[0xF] = 0;
 				registers[VX_reg] |= registers[VY_reg];
 			} else if (sub_opcode == 2) {
+				//registers[0xF] = 0;
 				registers[VX_reg] &= registers[VY_reg];
 			} else if (sub_opcode == 3) {
+				//registers[0xF] = 0;
 				registers[VX_reg] ^= registers[VY_reg];
 
 			// Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not.
@@ -368,20 +371,14 @@ void Chip8::countdown_timers()
 	if (delay_timer > 0)
 		--delay_timer;
 
-	if (sound_timer > 0)
-		if(sound_timer == 1);
-			// play_sfx = true;
+	if (sound_timer > 0) {
+		if(sound_timer == 1 && !sound_disabled) {
+			play_sfx = true;
+		}
 
 		--sound_timer;
+	}
 }
-
-void Chip8::run() 
-{
-	run_instruction();
-	// always want to count down the timers even if the program counter is not updated
-	countdown_timers();
-}
-
 
 // the program state is saved to a file in the following order
 // - 4 byte utc timestamp in seconds

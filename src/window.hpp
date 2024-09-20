@@ -40,7 +40,6 @@ public:
 	void start_game_loop();
 	void game_loop();
 	void on_key_event(const SDL_Keysym& key_info, bool is_press_event);
-	void play_a_sound();
 	void play_sound();
 
 	SDL_Window* window_ptr;

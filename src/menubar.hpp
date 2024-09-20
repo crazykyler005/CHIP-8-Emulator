@@ -26,15 +26,18 @@ public:
 	inline static const int MAX_SAVE_LOAD_STATES = 4;
 	inline static const int MAX_RESOLUTION_MAGNIFACTION = 4;
 
+	uint8_t selected_resolution_multiplier = 8;
+
 private:
 
 	void add_file_menu();
 	void add_states_menu();
 	void add_settings_menu();
+
 	void on_menu_file_load();
+	void on_menu_file_reset();
 	void on_menu_file_quit();
 
-	void on_menu_state_pause();
 	void on_menu_state_save(int i);
 	void on_menu_state_load(int i);
 	void on_menu_update_resolution(int i);

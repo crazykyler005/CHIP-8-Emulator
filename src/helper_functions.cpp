@@ -3,6 +3,13 @@
 #include <stdint.h>
 #include <thread>
 
+constexpr time_t MICROSECONDS_IN_A_SECOND = 1000000;
+
+time_t get_microseconds_in_second()
+{ 
+	return MICROSECONDS_IN_A_SECOND;
+}
+
 uint32_t utc_time_in_seconds()
 {
 	return std::time(0); //Returns UTC in Seconds
