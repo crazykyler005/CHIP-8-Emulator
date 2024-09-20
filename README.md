@@ -1,19 +1,14 @@
-This is an incomplement c++ Chip-8 emulator that uses SLD2 for rendering, keyboard input and sound and ImGui for creating the menubar and the file dialog window. 
+This is working but in-progress c++ Chip-8 emulator that uses SLD2 for rendering, keyboard input and sound and ImGui for creating the menubar and the file dialog window. 
 
-## Planned Features
-Sound fx
-
-Key bindings
-
-Controller input (maybe)
-
-A menu bar with the following options:
+## Planned Menubar features
+- Ability to switch between using different chip8 languages (chip8 original, chip8-48, super-chip8)
+- Ability to enable different opcode differences between versions
 - ~~Select and load a program/game from a file~~
 - ~~Pause option~~
-- Reset option
+- ~~Reset option~~
+- Select a color scheme (default white and black)
 - Save states
 - Load save states
-- Select a color scheme (default white and black)
 - ~~Ability maginify the resolution by x amount of the native~~
 
 ## Requirements

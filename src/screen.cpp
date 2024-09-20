@@ -45,17 +45,7 @@ void Screen::update_texture()
 		}
 	}
 
-	// SDL_Texture* texture = SDL_CreateTexture(
-	// 	_parent_window.renderer_ptr,
-	// 	SDL_PIXELFORMAT_RGBA32,
-	// 	SDL_TEXTUREACCESS_STREAMING,
-	// 	_chip8_ptr->native_width,
-	// 	_chip8_ptr->native_height
-	// );
-
 	SDL_UpdateTexture(get_texture(), NULL, pixels, _chip8_ptr->native_width * sizeof(uint32_t));
-
-	//_texture = texture;
 }
 
 SDL_FRect Screen::get_texture_dimensions()
