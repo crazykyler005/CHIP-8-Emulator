@@ -1,4 +1,4 @@
-This is working but in-progress c++ Chip-8 emulator that uses SLD2 for rendering, keyboard input and sound and ImGui for creating the menubar and the file dialog window. 
+This is a functional c++ Chip-8 emulator/interrupter that uses SLD2 for rendering, keyboard input and sound and ImGui for creating the menubar and the file dialog window. 
 
 ## Planned Menubar features
 - Ability to switch between using different chip8 languages (chip8 original, chip8-48, super-chip8)
