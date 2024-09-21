@@ -1,5 +1,4 @@
 #include "window.hpp"
-// #include "menubar.hpp"
 #include "helper_functions.hpp"
 #include <thread>
 #define FILE_PATH "../sound.wav"
@@ -159,30 +158,6 @@ void Window::start_game_loop()
 	worker.detach();
 }
 
-int Window::get_minimum_width() {
-	// int calculated_min_width;
-
-	// while(calculated_min_width < MIN_WINDOW_WIDTH) {
-	// 	calculated_min_width += chip8.native_width * 4;
-	// }
-
-	return chip8.native_width * 4;
-}
-int Window::get_minimum_height() {
-
-	// int calculated_min_height = _native_menubar_height;
-
-	// // TODO: get the actual size of the titlebar 
-	int titlebar_height = 7;
-	// calculated_min_height += titlebar_height;
-
-	// while(calculated_min_height < MIN_WINDOW_HEIGHT) {
-	// 	calculated_min_height += chip8.native_height;
-	// }
-
-	return (chip8.native_height * 4) + _native_menubar_height + titlebar_height;
-}
-
 void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 {
 	auto& char_pressed = key_info.sym;
@@ -264,11 +239,6 @@ void Window::play_sound()
     }
 
 	adjust_volume(wav_buffer, wav_length, &wav_spec, 0.5f);
-
-	// if ( SDL_OpenAudio(&wav_spec, NULL) < 0 ){
-	// 	fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-	// 	return;
-	// }
 
 	if (SDL_QueueAudio(device_id, wav_buffer, wav_length) < 0) {
 		fprintf(stderr, "Failed to queue audio: %s\n", SDL_GetError());

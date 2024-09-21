@@ -35,8 +35,6 @@ public:
 	~Window();
 	int init();
 	void main_loop();
-	int get_minimum_width();
-	int get_minimum_height();
 	void start_game_loop();
 	void game_loop();
 	void on_key_event(const SDL_Keysym& key_info, bool is_press_event);

@@ -189,6 +189,11 @@ void MenuBar::on_menu_file_load()
 			SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->DEFAULT_TITLE + " - " + fileDialog.GetCurrentFileName()).c_str());
 
 			_chip8_ptr->is_running = _chip8_ptr->load_program(filePathName);
+
+			if (_chip8_ptr->is_running) {
+				_program_name = fileDialog.GetCurrentFileName();
+			}
+
 			_parent_window.start_game_loop();
         }
 
@@ -227,8 +232,8 @@ void MenuBar::on_menu_state_save(int i)
 
 void MenuBar::on_menu_state_load(int i)
 {
-	// _chip8_ptr->load_program_state(load_menu_items[i]->get_label());
 	std::cout << "States -> Load state " + std::to_string(i) << std::endl;
+	_chip8_ptr->load_program_state(_program_name + std::to_string(i));
 }
 
 void MenuBar::on_menu_update_resolution(int i)

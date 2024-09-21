@@ -62,12 +62,6 @@ private:
 
 	inline static const uint16_t FONT_START_ADDR = 0x000;
 
-	inline static const uint16_t call_stack_start = 0xEA0; // 0xEA0-0xEFF
-	inline static const uint16_t call_stack_end = 0xEFF;
-
-	// inline static const uint16_t refresh_display_addr_start = 0xF00;
-	// inline static const uint16_t refresh_display_addr_end = 0xFFF;
-
 	// most programs written for the original system begin at memory location
 	// 0x200 because the interpreter occupied the first 512 bytes
 	inline static const uint16_t PROGRAM_START_ADDR = 0x200;

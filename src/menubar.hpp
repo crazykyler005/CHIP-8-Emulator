@@ -43,6 +43,7 @@ private:
 	void on_menu_update_resolution(int i);
 	
 	ImGuiFileDialog fileDialog;
+	std::string _program_name = "";
 
 	inline static const int _height = 25;
 
