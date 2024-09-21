@@ -4,9 +4,14 @@ project(CHIP-8_Emulator)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add SDL2 (this will find your SDL2 installation)
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
+# OS Detection
+if(WIN32)
+    find_package(SDL2 REQUIRED PATHS "C:/path/to/SDL2")
+    include_directories(${SDL2_INCLUDE_DIRS})
+else()
+    find_package(SDL2 REQUIRED)
+    include_directories(${SDL2_INCLUDE_DIRS})
+endif()
 
 find_package(PkgConfig REQUIRED)
 
@@ -35,4 +40,9 @@ add_executable(chip8
     src/helper_functions.cpp
 )
 
-target_link_libraries(chip8 ${SDL2_LIBRARIES})
+# Link SDL2 libraries based on OS
+if(WIN32)
+    target_link_libraries(chip8 ${SDL2_LIBRARIES} SDL2main)
+else()
+    target_link_libraries(chip8 ${SDL2_LIBRARIES})
+endif()
