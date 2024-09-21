@@ -395,6 +395,8 @@ void Chip8::countdown_timers()
 // - 4 byte utc timestamp in seconds
 // - 2 byte program counter
 // - 2 byte index register
+// - 1 byte delay timer
+// - 1 byte sound timer
 // - 1 byte current stack size
 // - all stack elements from first to last added if stack size is not 0 (0 - 32 bytes)
 // - 256 bytes that hold the state of 8 pixels in each byte (pixels / 8 = 256)
@@ -409,7 +411,7 @@ bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp)
 		return false;
 	}
 
-	// 4 + 2 + 2 + 1 + 256 (everything above excluding stack elements, CRC size)
+	// 4 + 2 + 2 + 1 + 1 + 1 + 256 (everything above excluding stack elements, CRC size)
 	static size_t MIN_SAVE_FILE_SIZE = 265;
 	size_t save_file_size = MIN_SAVE_FILE_SIZE + (stack.size() * sizeof(uint16_t));
 
@@ -432,6 +434,9 @@ bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp)
 	sys_put_be32(utc_timestamp, idx);
 	idx += sizeof(utc_timestamp);
 
+	// TODO: cram 12bit program counter and index register into 3 bytes?
+	// uint8_t* program_ctr_index_reg[3] = { program_ctr >> 4, program_ctr & 0xF0 | index_reg >> 8, index_reg };
+
 	auto program_ctr_16 = static_cast<uint16_t>(program_ctr);
 	sys_put_be16(program_ctr_16, idx);
 	idx += sizeof(program_ctr_16);
@@ -439,6 +444,9 @@ bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp)
 	auto index_reg_16 = static_cast<uint16_t>(program_ctr);
 	sys_put_be16(index_reg_16, idx);
 	idx += sizeof(index_reg_16);
+
+	idx++[0] = delay_timer;
+	idx++[0] = sound_timer;
 
 	idx++[0] = static_cast<uint8_t>(stack.size());
 
@@ -520,8 +528,10 @@ void Chip8::load_program_state(std::string file_name) {
 	index_reg = sys_get_be16(buffer_ptr);
 	buffer_ptr += sizeof(uint16_t);
 
-	auto stack_size = buffer_ptr[0];
-	buffer_ptr++;
+	delay_timer = buffer_ptr++[0];
+	sound_timer = buffer_ptr++[0];
+
+	auto stack_size = buffer_ptr++[0];
 
 	stack.clear();
 	stack.reserve(stack_size);

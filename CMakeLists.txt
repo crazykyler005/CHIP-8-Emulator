@@ -19,7 +19,6 @@ set(IMGUI_SRC
 	${CMAKE_SOURCE_DIR}/lib/imgui/ImGuiFileDialog.cpp
     ${CMAKE_SOURCE_DIR}/lib/imgui/backends/imgui_impl_sdl2.cpp
 	${CMAKE_SOURCE_DIR}/lib/imgui/backends/imgui_impl_sdlrenderer2.cpp
-    # ${CMAKE_SOURCE_DIR}/imgui/backends/imgui_impl_opengl3.cpp
 )
 
 # Include ImGui headers
