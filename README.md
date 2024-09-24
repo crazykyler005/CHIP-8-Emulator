@@ -2,13 +2,12 @@ This is a functional c++ Chip-8 emulator/interrupter that uses SLD2 for renderin
 
 ## Planned Menubar features
 - Ability to switch between using different chip8 languages (chip8 original, chip8-48, super-chip8)
-- Ability to enable different opcode differences between versions
+- Ability to enable/disable opcode and opcode differences that are used between various versions
 - ~~Select and load a program/game from a file~~
 - ~~Pause option~~
 - ~~Reset option~~
-- Select a color scheme (default white and black)
-- Save states
-- Load save states
+- ~~Select a color scheme (default white and black)~~
+- Save/Load states
 - ~~Ability maginify the resolution by x amount of the native~~
 
 ## Requirements
