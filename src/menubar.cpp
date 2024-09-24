@@ -5,8 +5,6 @@
 #include <cstdio>
 #include <iostream>
 
-static bool seletected_color_schemes[5] = { false };
-
 MenuBar::MenuBar(Chip8* chip8_pointer, Window& parent_window)
 	: _chip8_ptr(chip8_pointer), _parent_window(parent_window)
 {
@@ -61,21 +59,6 @@ void MenuBar::add_file_menu()
 		//     ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
 		//     ImGui::InputFloat("Input", &f, 0.1f);
 		//     ImGui::Combo("Combo", &n, "Yes\0No\0Maybe\0\0");
-		//     ImGui::EndMenu();
-		// }
-
-		// if (ImGui::BeginMenu("Colors"))
-		// {
-		//     float sz = ImGui::GetTextLineHeight();
-		//     for (int i = 0; i < ImGuiCol_COUNT; i++)
-		//     {
-		//         const char* name = ImGui::GetStyleColorName((ImGuiCol)i);
-		//         ImVec2 p = ImGui::GetCursorScreenPos();
-		//         ImGui::GetWindowDrawList()->AddRectFilled(p, ImVec2(p.x + sz, p.y + sz), ImGui::GetColorU32((ImGuiCol)i));
-		//         ImGui::Dummy(ImVec2(sz, sz));
-		//         ImGui::SameLine();
-		//         ImGui::MenuItem(name);
-		//     }
 		//     ImGui::EndMenu();
 		// }
 
@@ -147,28 +130,42 @@ void MenuBar::add_settings_menu()
 			ImGui::EndMenu();
 		}
 
-		// generating color scheme submenu to settings menu
-		if (ImGui::BeginMenu("Color Scheme"))
+		if (ImGui::BeginMenu("Colors Schemes"))
 		{
-			for (uint8_t i = 0; i < sizeof(seletected_color_schemes); i++) {
+		    float sz = ImGui::GetTextLineHeight();
+		    for (int i = 0; i < Window::COLOR_SCHEME_ARRAY.size(); i++)
+		    {
+		        ImVec2 c1_pos = ImGui::GetCursorScreenPos();
+				ImVec2 c2_pos = {c1_pos.x + sz + 3, c1_pos.y};
 
-				if ( ImGui::MenuItem(("State " + std::to_string(i)).c_str(), 
+		        ImGui::GetWindowDrawList()->AddRectFilled(c1_pos, ImVec2(c1_pos.x + sz, c1_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].color1);
+				ImGui::GetWindowDrawList()->AddRectFilled(c2_pos, ImVec2(c2_pos.x + sz, c2_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].color2);
+		        ImGui::Dummy(ImVec2(sz * 2, sz));
+		        ImGui::SameLine();
+		        
+				if ( ImGui::MenuItem(Window::COLOR_SCHEME_ARRAY[i].name.c_str(), 
 						(i == 0) ? "default" : "",
-						&seletected_color_schemes[i]
-				)) 
-				{
-					seletected_color_schemes[i] = true;
-
-					for (uint8_t k = 0; k < sizeof(seletected_color_schemes); k++) {
-						if (i == k) {
-							continue;
-						}
-						seletected_color_schemes[k] = false;
-					}
+						(Window::seletected_color_scheme == i)
+				)) {
+					Window::seletected_color_scheme = i;
 				}
-			}
-			ImGui::EndMenu();
+		    }
+		    ImGui::EndMenu();
 		}
+
+		// TODO: get imgui popup to display in the foreground
+		if (ImGui::MenuItem("Set instructions per second", NULL, false, false))
+        {
+			// if (!ImGui::Begin("Configure instructions per second", false, ImGuiWindowFlags_AlwaysAutoResize))
+			// {
+			// 	ImGui::End();
+			// 	return;
+			// }
+
+			// static char buf2[5] = "700"; ImGui::InputText("IPS", buf2, 32, ImGuiInputTextFlags_CharsDecimal);
+			// ImGui::Button("Submit", ImVec2(50,50));
+			// ImGui::End();
+        }
 
 		ImGui::MenuItem("Enable 0xFX1E overflow", NULL, &_chip8_ptr->_0xFX1E_overflow_enabled);
 		ImGui::EndMenu();
@@ -243,3 +240,8 @@ void MenuBar::on_menu_update_resolution(int i)
 
 	selected_resolution_multiplier = i;
 }
+
+// void MenuBar::on_menu_update_scheme(ColorScheme )
+// {
+// 	switch()
+// }

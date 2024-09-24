@@ -18,10 +18,21 @@
 #include "chip8.hpp"
 #include "menubar.hpp"
 
-enum class ColorScheme : uint8_t { // TODO: use a struct for storing RGB values
-	ORIGINAL=0,
-	GAMEBOY,
-	END
+// enum class ColorScheme : uint8_t { // TODO: use a struct for storing RGB values
+// 	ORIGINAL=0,
+// 	VIRTUAL_BOY,
+// 	GAMEBOY,
+// 	END
+// };
+
+struct ColorScheme {
+	std::string name;
+	uint32_t color1;
+	uint32_t color2;
+
+	// Constructor to initialize the values
+    ColorScheme(const std::string& name, uint32_t color1, uint32_t color2)
+        : name(name), color1(color1), color2(color2) {}
 };
 
 // Forward declare MenuBar class
@@ -44,6 +55,22 @@ public:
 	SDL_Renderer* renderer_ptr;
 
 	void close() { running = false; }
+
+	// TODO: implement this better
+	inline static uint32_t get_rgba32_value(uint8_t r, uint8_t g, uint8_t b) {
+		// AABBGGRR
+		static uint8_t a = 255;
+		return (a << 24) | (b << 16) | (g << 8) | r;
+	}
+
+	static inline std::array<ColorScheme, 4> COLOR_SCHEME_ARRAY = {
+		ColorScheme("Orginial", get_rgba32_value(255, 255, 255), get_rgba32_value(0, 0, 0) ),
+		ColorScheme( "Gameboy", get_rgba32_value(113, 129, 40), get_rgba32_value(209, 209, 88) ),
+		ColorScheme(    "Mint", get_rgba32_value(149, 199, 152), get_rgba32_value(133, 109, 82) ),
+		ColorScheme(    "Gold", get_rgba32_value(207, 171, 81), get_rgba32_value(64, 51, 47) )
+	};
+
+	static inline uint8_t seletected_color_scheme = 0;
 
 protected:
 	std::unique_ptr<MenuBar> m_menubar;

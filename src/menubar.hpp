@@ -49,9 +49,7 @@ private:
 
 	Window& _parent_window;
 	Chip8* _chip8_ptr;
-
-	int8_t _selected_color_scheme = -1;
-
+	
 	std::vector<std::string> stateTimestamps = { 5, "" };
 };
 

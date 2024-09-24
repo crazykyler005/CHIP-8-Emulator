@@ -32,20 +32,24 @@ void Screen::generate_texture()
 
 void Screen::update_texture()
 {
-	uint32_t* pixels = new uint32_t[_chip8_ptr->native_width * _chip8_ptr->native_height];
+	uint32_t* pixels;
+	int pitch;
 
-	// Fill pixel buffer with data
+	if (SDL_LockTexture(_texture, NULL, (void**)&pixels, &pitch) != 0) {
+        return;
+    }
+
+	// Directly modify the pixel data
 	for (int i = 0; i < _chip8_ptr->native_width * _chip8_ptr->native_height; i++) {
 		if (_chip8_ptr->px_states[i]) {
-			// Set pixel color to white
-			pixels[i] = SDL_MapRGBA(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32), 255, 255, 255, 255);
+			pixels[i] = Window::COLOR_SCHEME_ARRAY[Window::seletected_color_scheme].color1;
 		} else {
-			// Set pixel color to black
-			pixels[i] = SDL_MapRGBA(SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32), 0, 0, 0, 255);  // Red color
+			pixels[i] = Window::COLOR_SCHEME_ARRAY[Window::seletected_color_scheme].color2;
 		}
 	}
 
-	SDL_UpdateTexture(get_texture(), NULL, pixels, _chip8_ptr->native_width * sizeof(uint32_t));
+	// Unlock the texture after modifying pixels
+    SDL_UnlockTexture(_texture);
 }
 
 SDL_FRect Screen::get_texture_dimensions()

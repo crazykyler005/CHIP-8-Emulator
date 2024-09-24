@@ -4,7 +4,6 @@
 #define FILE_PATH "../sound.wav"
 
 std::mutex mtx;
-
 static bool update_texture = false;
 
 Window::Window()
@@ -98,9 +97,9 @@ void Window::main_loop()
 		ImGui::NewFrame();
 
 		if (update_texture) {
-            std::lock_guard<std::mutex> lock(mtx);  // Lock to avoid race conditions
+            std::lock_guard<std::mutex> lock(mtx);
             screen.update_texture();  // Update the texture on the main thread
-            update_texture = false;  // Reset the flag
+            update_texture = false;
         }
 		
 		auto dstRect = screen.get_texture_dimensions();
