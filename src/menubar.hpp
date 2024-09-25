@@ -34,13 +34,15 @@ private:
 	void add_states_menu();
 	void add_settings_menu();
 
-	void on_menu_file_load();
 	void on_menu_file_reset();
 	void on_menu_file_quit();
 
 	void on_menu_state_save(int i);
 	void on_menu_state_load(int i);
 	void on_menu_update_resolution(int i);
+
+	void display_ips_configure_window();
+	void display_file_load_window();
 	
 	ImGuiFileDialog fileDialog;
 	std::string _program_name = "";

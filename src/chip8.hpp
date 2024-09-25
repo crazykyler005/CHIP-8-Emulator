@@ -33,7 +33,7 @@ public:
 
 	inline static const std::string DEFAULT_TITLE = "Chip-8 Emulator";
 
-	uint16_t opcodes_per_second = 600;
+	uint16_t opcodes_per_second = 700;
 
 	bool keys_pressed[16] = {};
 	bool draw_flag = false;

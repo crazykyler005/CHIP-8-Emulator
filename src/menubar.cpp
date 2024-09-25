@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <iostream>
 
+static bool display_ips_config = false;
+
 MenuBar::MenuBar(Chip8* chip8_pointer, Window& parent_window)
 	: _chip8_ptr(chip8_pointer), _parent_window(parent_window)
 {
@@ -21,7 +23,8 @@ void MenuBar::generate()
 		ImGui::EndMainMenuBar();
 	}
 
-	on_menu_file_load();
+	display_ips_configure_window();
+	display_file_load_window();
 }
 
 void MenuBar::add_file_menu()
@@ -114,7 +117,7 @@ void MenuBar::add_settings_menu()
 	{
 		ImGui::MenuItem("Disable sound", NULL, &_chip8_ptr->sound_disabled);
 
-		if (ImGui::MenuItem("Pause", NULL, &_chip8_ptr->is_paused));
+		if (ImGui::MenuItem("Pause", "ctrl p", &_chip8_ptr->is_paused));
 
 		if (ImGui::BeginMenu("Resolution"))
 		{
@@ -153,50 +156,14 @@ void MenuBar::add_settings_menu()
 		    ImGui::EndMenu();
 		}
 
-		// TODO: get imgui popup to display in the foreground
-		if (ImGui::MenuItem("Set instructions per second", NULL, false, false))
+		if (ImGui::MenuItem("Set instructions per second", NULL, false, true))
         {
-			// if (!ImGui::Begin("Configure instructions per second", false, ImGuiWindowFlags_AlwaysAutoResize))
-			// {
-			// 	ImGui::End();
-			// 	return;
-			// }
-
-			// static char buf2[5] = "700"; ImGui::InputText("IPS", buf2, 32, ImGuiInputTextFlags_CharsDecimal);
-			// ImGui::Button("Submit", ImVec2(50,50));
-			// ImGui::End();
+			display_ips_config = true;
         }
 
 		ImGui::MenuItem("Enable 0xFX1E overflow", NULL, &_chip8_ptr->_0xFX1E_overflow_enabled);
 		ImGui::EndMenu();
 	}
-}
-
-void MenuBar::on_menu_file_load()
-{
-	// If the file dialog is open, display it
-    if (fileDialog.Display("ChooseFileDlgKey")) {
-        // If the user selects a file, get the result
-        if (fileDialog.IsOk()) {
-            std::string filePathName = fileDialog.GetFilePathName();
-            std::string filePath = fileDialog.GetCurrentPath();
-
-            // You can now use the selected file path here
-            printf("Selected file: %s\n", filePathName.c_str());
-			SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->DEFAULT_TITLE + " - " + fileDialog.GetCurrentFileName()).c_str());
-
-			_chip8_ptr->is_running = _chip8_ptr->load_program(filePathName);
-
-			if (_chip8_ptr->is_running) {
-				_program_name = fileDialog.GetCurrentFileName();
-			}
-
-			_parent_window.start_game_loop();
-        }
-
-        // Close the dialog after processing
-        fileDialog.Close();
-    }
 }
 
 void MenuBar::on_menu_file_reset()
@@ -241,7 +208,53 @@ void MenuBar::on_menu_update_resolution(int i)
 	selected_resolution_multiplier = i;
 }
 
-// void MenuBar::on_menu_update_scheme(ColorScheme )
-// {
-// 	switch()
-// }
+void MenuBar::display_ips_configure_window()
+{
+	if (!display_ips_config) {
+		return;
+	}
+
+	if (ImGui::Begin("Configure IPS", (bool*)nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
+	{
+		ImGui::Text("Type in a value between 1 and 2000");
+
+		static char IPS_char_buff[5] = "700"; ImGui::InputText("IPS", IPS_char_buff, 32, ImGuiInputTextFlags_CharsDecimal);
+		if (ImGui::Button("Submit", ImVec2(50,50))) {
+			auto new_IPS = atoi(IPS_char_buff);
+
+			if (0 < new_IPS <= 2000) {
+				_chip8_ptr->opcodes_per_second = new_IPS;
+				display_ips_config = false;
+			}
+		}
+
+		ImGui::End();
+	}
+}
+
+void MenuBar::display_file_load_window()
+{
+	// If the file dialog is open, display it
+    if (fileDialog.Display("ChooseFileDlgKey")) {
+        // If the user selects a file, get the result
+        if (fileDialog.IsOk()) {
+            std::string filePathName = fileDialog.GetFilePathName();
+            std::string filePath = fileDialog.GetCurrentPath();
+
+            // You can now use the selected file path here
+            printf("Selected file: %s\n", filePathName.c_str());
+			SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->DEFAULT_TITLE + " - " + fileDialog.GetCurrentFileName()).c_str());
+
+			_chip8_ptr->is_running = _chip8_ptr->load_program(filePathName);
+
+			if (_chip8_ptr->is_running) {
+				_program_name = fileDialog.GetCurrentFileName();
+			}
+
+			_parent_window.start_game_loop();
+        }
+
+        // Close the dialog after processing
+        fileDialog.Close();
+    }
+}

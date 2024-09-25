@@ -180,20 +180,37 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 		}
 
 	} else if (is_press_event && ((modifier & ~(KMOD_CTRL | KMOD_ALT)) == KMOD_NONE) &&
-		((modifier & KMOD_CTRL) & KMOD_CTRL)) {
+		((modifier & KMOD_CTRL) & KMOD_CTRL) && chip8.is_running) {
 		if (char_pressed == SDLK_s) {
 
 		} else if (char_pressed == SDLK_l) {
 			
 		} else if (char_pressed == SDLK_p) {
+			if (chip8.is_paused) {
+				chip8.is_paused = false;
+				return;
+			}
 
+			chip8.is_paused = true;
+
+		// run one instruction at a time
+		} else if (char_pressed == SDLK_RIGHT) {
+			if (chip8.is_paused) {
+				chip8.run_instruction();
+			}
+
+		// countdown timers 
+		} else if (char_pressed == SDLK_DOWN) {
+			if (chip8.is_paused) {
+				chip8.countdown_timers();
+			}
 		}
 
-		printf("Valid ctrl press\n");
+		// printf("Valid ctrl press\n");
 		return;
 	}
 
-	printf("char: %c, state: %d\n", char_pressed, modifier);
+	// printf("char: %c, state: %d\n", char_pressed, modifier);
 
   	return;
 }
