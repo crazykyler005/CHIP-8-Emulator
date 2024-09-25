@@ -197,6 +197,11 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 		} else if (char_pressed == SDLK_RIGHT) {
 			if (chip8.is_paused) {
 				chip8.run_instruction();
+
+				if (chip8.draw_flag) {
+					chip8.draw_flag = false;
+					update_texture = true;
+				}
 			}
 
 		// countdown timers 

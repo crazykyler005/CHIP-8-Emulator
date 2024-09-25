@@ -3,6 +3,7 @@ This is a functional c++ Chip-8 emulator/interrupter that uses SLD2 for renderin
 ## Planned Menubar features
 - Ability to switch between using different chip8 languages (chip8 original, chip8-48, super-chip8)
 - Ability to enable/disable opcode and opcode differences that are used between various versions
+- ~~Adjust the amount of opcodes ran per second~~
 - ~~Select and load a program/game from a file~~
 - ~~Pause option~~
 - ~~Reset option~~
