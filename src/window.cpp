@@ -165,14 +165,19 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 	// if ctrl or alt modifiers are used, when a key within 
 	// the key_map is pressed, it's considered invalid
 	if (((modifier & (KMOD_CTRL | KMOD_ALT)) == KMOD_NONE)) {
-		for (uint8_t i = 0; i < key_map.size(); i++) {
+		for (uint8_t i = 0; i < chip8.keys.size(); i++) {
+			auto& key = chip8.keys[i];
 
 			// if the physical position of the pressed key matches an accepted postion
-			if (key_map[i] == SDL_GetScancodeFromKey(char_pressed)) {
+			if (key.map == SDL_GetScancodeFromKey(char_pressed)) {
 				if (is_press_event) {
-					chip8.keys_pressed[i] = true;
+					key.is_pressed = true;
 				} else {
-					chip8.keys_pressed[i] = false;
+					key.is_pressed = false;
+
+					if (chip8.wait_for_key_release) {
+						key.released_on_wait_event = true;
+					}
 				}
 
 				return;

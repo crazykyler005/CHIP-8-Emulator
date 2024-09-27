@@ -83,33 +83,6 @@ private:
 
 	Chip8 chip8;
 
-	// OG key mapping    Recommend key mapping
-	//   |1|2|3|C|            |1|2|3|4|
-	//   |4|5|6|D|     =>     |Q|W|E|R|
-	//   |7|8|9|E|            |A|S|D|F|
-	//   |A|0|B|F|            |Z|X|C|V|
-
-	// we create a SDL Scancodes instead of KeyCodes in the case that a non-QWERTY keyboard layout is used
-	// since we want each key press to be mapped to a specific physical position on a keyboard
-	static inline std::array<SDL_Scancode, 16> key_map = {
-		SDL_SCANCODE_1,
-		SDL_SCANCODE_2,
-		SDL_SCANCODE_3,
-		SDL_SCANCODE_4,
-		SDL_SCANCODE_Q,
-		SDL_SCANCODE_W,
-		SDL_SCANCODE_E,
-		SDL_SCANCODE_R,
-		SDL_SCANCODE_A,
-		SDL_SCANCODE_S,
-		SDL_SCANCODE_D,
-		SDL_SCANCODE_F,
-		SDL_SCANCODE_Z,
-		SDL_SCANCODE_X,
-		SDL_SCANCODE_C,
-		SDL_SCANCODE_V
-	};
-
 	bool running = true;
 };
 
