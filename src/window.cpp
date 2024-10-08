@@ -170,16 +170,7 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 
 			// if the physical position of the pressed key matches an accepted postion
 			if (key.map == SDL_GetScancodeFromKey(char_pressed)) {
-				if (is_press_event) {
-					key.is_pressed = true;
-				} else {
-					key.is_pressed = false;
-
-					if (chip8.wait_for_key_release) {
-						key.released_on_wait_event = true;
-					}
-				}
-
+				chip8.process_key_event(i, is_press_event);
 				return;
 			}
 		}

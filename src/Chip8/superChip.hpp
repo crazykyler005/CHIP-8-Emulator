@@ -9,9 +9,10 @@ enum class ScrollDirection : uint8_t {
 	UP
 };
 
-class SuperChip : Chip8Interpreter {
+class SuperChip : public Chip8Interpreter {
 
 public:
+	SuperChip();
 	bool switch_type(Chip8Type type) override;
 
 private:

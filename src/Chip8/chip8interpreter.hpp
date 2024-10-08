@@ -31,26 +31,30 @@ struct key_info {
 };
 
 public:
-	Chip8Interpreter();
-	// { 	std::vector<bool>(native_width * native_height, defaultValue) };
+	Chip8Interpreter(uint8_t width, uint8_t height, uint8_t sprite_width);
+
+	const uint8_t native_width;
+	const uint8_t native_height;
 
 	virtual bool switch_type(Chip8Type type) = 0;
+	virtual Chip8Type get_type() { return _type; };
 
 	virtual void reset();
 
 	virtual void run_instruction();
 	virtual bool load_program(std::string file_path);
-	virtual bool save_program_state(uint8_t state_number, uint32_t utc_timestamp);
+	virtual bool save_program_state(std::string& program_name, uint8_t state_number, uint32_t utc_timestamp);
 	virtual void load_program_state(std::string file_name);
 
-	virtual void process_key_event(uint8_t key_index, bool is_pressed);
+	virtual void process_key_event(uint8_t& key_index, bool is_pressed);
+	virtual void cancel_key_wait_event();
 
 	virtual void countdown_timers();
 
 	inline static const time_t HZ_PER_SECOND = 60;
 	uint16_t opcodes_per_second = 700;
 
-	const std::string INTERPRETER_NAME;
+	std::string INTERPRETER_NAME;
 
 	std::array<key_info, 16> keys = {};
 	bool draw_flag = false;
@@ -66,19 +70,40 @@ public:
 	// TODO: optimise how pixel states are stored by changing the above array to the following 
 	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable
 	// std::vector<uint8_t> px_states[(64 * 32) / 8] = {};
-	std::vector<bool> px_states;
+	std::vector<uint8_t> px_states;
 
-	const uint8_t native_width;
-	const uint8_t native_height;
 protected:
+
+	inline static const std::string SAVE_FILE_EXTENSION = ".sav";
+	// 0x000-0x1FF - Chip 8 interpreter (contains font set in emu)
+	// 0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
+	// 0x200-0xFFF - Program ROM and work RAM
+
+	inline static const uint16_t MEMORY_SIZE = 4096; //0x1000
+
+	// most programs written for the original system begin at memory location
+	// 0x200 because the interpreter occupied the first 512 bytes
+	inline static const uint16_t PROGRAM_START_ADDR = 0x200;
+
+	// stack is used to remeber the current location before a jump operation is made
+	// the program counter gets stored in the stack
+	inline static size_t MAX_STACK_SIZE = 16;
+	std::vector<uint16_t> stack;
+
 	Chip8Type _type;
 	const uint8_t SPRITE_PX_WIDTH;
 
-	// Before the CHIP-8 interpreters CHIP48 and SUPER-CHIP (1970s - 1980s), the I register
-	// was incremented each time it stored or loaded one register. (I += X + 1).
-	bool increment_i = true;
-	virtual bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) { return false; };
-	std::vector<uint8_t> additional_data;
+	uint8_t memory[4096] = {};
+	uint8_t registers[16] = {};
+
+	uint16_t index_reg = 0;
+	uint16_t program_ctr = PROGRAM_START_ADDR;
+
+	// used to figure out if we should be saving data from memory into a save state
+	uint16_t lowest_mem_addr_updated = 0xFFF;
+
+	uint8_t delay_timer = 0;
+	uint8_t sound_timer = 0;
 
 	inline static uint8_t fontset[80] =
 	{ 
@@ -127,6 +152,12 @@ protected:
 		SDL_SCANCODE_V  // F
 	};
 
+	// Before the CHIP-8 interpreters CHIP48 and SUPER-CHIP (1970s - 1980s), the I register
+	// was incremented each time it stored or loaded one register. (I += X + 1).
+	bool increment_i = true;
+	std::vector<uint8_t> additional_data;
+
+	virtual bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) { return false; };
 	virtual void interrupt_additional_data() = 0;
 	virtual void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) = 0;
 };

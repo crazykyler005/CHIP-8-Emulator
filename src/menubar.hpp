@@ -33,6 +33,7 @@ private:
 	void add_file_menu();
 	void add_states_menu();
 	void add_settings_menu();
+	void add_intrepreter_menu();
 
 	void on_menu_file_reset();
 	void on_menu_file_quit();

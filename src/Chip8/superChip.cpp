@@ -1,15 +1,13 @@
 #include "superChip.hpp"
 
-SuperChip::SuperChip() {
-	INTERPRETER_NAME = "Super Chip Emulator";
-	SPRITE_PX_WIDTH = 16;
+SuperChip::SuperChip() : 
+	Chip8Interpreter(128, 64, 16)
+{
+	INTERPRETER_NAME = "Super Chip";
 	px_states.resize(native_width * native_height);
 
-	native_width = 128;
-	native_height = 64;
-
 	// loading high res fontset into the designated position in memory (81-240)
-	std::copy(std::begin(super_fontset), std::end(super_fontset), std::begin(memory + sizeof(fontset)));
+	std::copy(std::begin(super_fontset), std::end(super_fontset), std::begin(memory) + sizeof(fontset));
 
 	opcodes_per_second = 1800;
 	increment_i = false;
@@ -156,12 +154,7 @@ void SuperChip::scroll_screen(ScrollDirection direction, uint8_t px_shift)
 
 bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg)
 {
-	uint16_t opcode = (static_cast<uint16_t>(memory[program_ctr]) << 8) + memory[program_ctr + 1];
-
-	uint8_t VX_reg = (opcode >> 8) & 0xF; // 3rd nibble
-	uint8_t VY_reg = (opcode >> 4) & 0xF; // 2nd nibble
-
-	uint8_t sub_opcode = 0;
+	uint8_t sub_opcode = (opcode & 0xFF);
 
 	switch (opcode & 0xF000)
 	{
@@ -191,10 +184,10 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 				is_running = false;
 
 			} else if (opcode == 0xFE) {
-				_high_res_mode_en = false
+				_high_res_mode_en = false;
 
 			} else if (opcode == 0xFF) {
-				_high_res_mode_en = true
+				_high_res_mode_en = true;
 				
 			} else {
 				return false;
@@ -209,7 +202,7 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 				registers[VX_reg] >>= 1;
 
 			// Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset.
-			} else if (sub_opcode == 0xE) {
+			} else if ((opcode & 0xF) == 0xE) {
 				registers[0xF] = (registers[VX_reg] & 0x80) ? 1 : 0;
 				registers[VX_reg] <<= 1;
 			} else {
@@ -238,7 +231,7 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 				}
 
 				if (!key_pressed) {
-					return;
+					return true;
 				}
 			}
 
@@ -267,7 +260,7 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 				}
 			}
 
-		case default:
+		default:
 			break;
 	}
 

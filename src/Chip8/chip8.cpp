@@ -1,14 +1,11 @@
 
 #include "chip8.hpp"
 
-Chip8::Chip8() {
+Chip8::Chip8() : 
+	Chip8Interpreter(64, 32, 8)
+{
 	INTERPRETER_NAME = "Chip-8";
-	SPRITE_PX_WIDTH = 8;
-
 	px_states.resize(native_width * native_height);
-
-	native_width = 64;
-	native_height = 32;
 }
 
 bool Chip8::switch_type(Chip8Type type)
@@ -61,30 +58,25 @@ void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 	return;
 }
 
-void Chip8::cancel_key_wait_event() {
-	wait_for_key_release = false;
-
-	for (auto& key : keys) {
-		key.is_pressed = false;
-		key.released_on_wait_event = false;
-	}
-}
-
 bool Chip8::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) {
 
-	// No operation
-	if (opcode == 0x0000) {
-		(void);
+	if (_type == Chip8Type::AMIGA_CHIP8) {
+		// No operation
+		if (opcode == 0x0000) {
+			;
 
-	// Stop
-	} else if (opcode == 0xF000) {
-		is_running = false;
-		
-	// Modified instruction: FX1E - If the result of VX+I overflows set VF to 1
-	// There is one known game that depends on this modified behavior happening.
-	} else if (opcode & 0xF0FF == F01E) {
-		index_reg += registers[VX_reg];
-		registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
+		// Stop
+		} else if (opcode == 0xF000) {
+			is_running = false;
+			
+		// Modified instruction: FX1E - If the result of VX+I overflows set VF to 1
+		// There is one known game that depends on this modified behavior happening.
+		} else if (opcode & 0xF0FF == 0xF01E) {
+			index_reg += registers[VX_reg];
+			registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
+		} else {
+			return false;
+		}
 	} else {
 		return false;
 	}

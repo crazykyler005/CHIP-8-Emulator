@@ -1,5 +1,5 @@
-#include "helper_functions.hpp"
-#include "byteorder.h"
+#include "../helper_functions.hpp"
+#include "../byteorder.h"
 
 #include <random>
 #include <stdlib.h>
@@ -10,9 +10,9 @@
 
 #include "chip8interpreter.hpp"
 
-Chip8Interpreter::Chip8Interpreter() {
-	opcodes_per_second = 700;
-
+Chip8Interpreter::Chip8Interpreter(uint8_t width, uint8_t height, uint8_t sprite_width) :
+	native_width(width), native_height(height), SPRITE_PX_WIDTH(sprite_width)
+{
 	// loading fontset into the designated position in memory (0-80)
 	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));
 
@@ -32,7 +32,7 @@ void Chip8Interpreter::reset() {
 	memset(registers, 0, sizeof(registers));
 
 	// Clear display
-	memset(px_states, false, sizeof(px_states));
+	memset(px_states.data(), 0, px_states.size());
 	draw_flag = true;
 
 	// Clear key_presses
@@ -76,7 +76,7 @@ bool Chip8Interpreter::load_program(std::string file_path)
 }
 
 
-void process_key_event(uint8_t key_index, bool is_pressed)
+void Chip8Interpreter::process_key_event(uint8_t& key_index, bool is_pressed)
 {
 	keys[key_index].is_pressed = is_pressed;
 
@@ -94,7 +94,7 @@ void Chip8Interpreter::run_instruction() {
 
 	// printf("opcode: %x, i: %d, pc: %d, reg[vx]: %d, VX_reg: %d\n", opcode, index_reg, program_ctr, registers[VX_reg], VX_reg);
 
-	if (run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg)) {
+	if (run_additional_or_modified_instructions(opcode, VX_reg, VY_reg)) {
 		return;
 	}
 
@@ -105,7 +105,7 @@ void Chip8Interpreter::run_instruction() {
 		case 0x0000:
 			if (opcode == 0x00E0) {
 				// clear screen
-				memset(px_states, 0, sizeof(px_states));
+				memset(px_states.data(), 0, px_states.size());
 				draw_flag = true;
 
 			} else if (opcode == 0x00EE) {
@@ -319,11 +319,6 @@ void Chip8Interpreter::run_instruction() {
 			} else if (sub_opcode == 0x1E) {
 				index_reg += registers[VX_reg];
 
-				// TODO: implement a setting from the menubar that enables this functionallity
-				if (_0xFX1E_overflow_enabled) {
-					registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
-				}
-
 			// Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font
 			} else if (sub_opcode == 0x29) {
 				index_reg = registers[VX_reg] * 5;
@@ -408,7 +403,7 @@ void Chip8Interpreter::countdown_timers()
 // - 2 byte lowest memory address update by the program/game
 // - x byte memory from lowest memory address overwritten and onward
 // - TODO: add a CRC to the end of the file and check if it is valid when loading it
-bool Chip8Interpreter::save_program_state(uint8_t state_number, uint32_t utc_timestamp) 
+bool Chip8Interpreter::save_program_state(std::string& program_name, uint8_t state_number, uint32_t utc_timestamp) 
 {
 	return false;
 

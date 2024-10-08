@@ -19,6 +19,7 @@ void MenuBar::generate()
 		add_file_menu();
 		add_states_menu();
 		add_settings_menu();
+		add_intrepreter_menu();
 
 		ImGui::EndMainMenuBar();
 	}
@@ -102,7 +103,7 @@ void MenuBar::add_settings_menu()
 	{
 		ImGui::MenuItem("Disable sound", NULL, &_chip8_ptr->sound_disabled);
 
-		if (ImGui::MenuItem("Pause", "ctrl p", &_chip8_ptr->is_paused));
+		if (ImGui::MenuItem("Pause", "Ctrl-p", &_chip8_ptr->is_paused));
 
 		if (ImGui::BeginMenu("Resolution"))
 		{
@@ -155,53 +156,28 @@ void MenuBar::add_intrepreter_menu()
 {
 	if (ImGui::BeginMenu("Intrepreters"))
 	{
-		ImGui::MenuItem("Disable sound", NULL, &_chip8_ptr->sound_disabled);
+		auto type = _chip8_ptr->get_type();
 
-		if (ImGui::MenuItem("Pause", "ctrl p", &_chip8_ptr->is_paused));
+		if (ImGui::MenuItem("Chip 8", "", false, false)) {}
 
-		if (ImGui::BeginMenu("Resolution"))
-		{
-			for (int i = 4; i <= 16; i+=4) {
-
-				auto action_name = "x" + std::to_string(i);
-
-				if (ImGui::MenuItem((action_name).c_str(), NULL, (i == selected_resolution_multiplier))) {
-					on_menu_update_resolution(i);
-				}
-			}
-
-			ImGui::EndMenu();
+		if (ImGui::MenuItem("COSMAC VIP", "Original", type == Chip8Type::ORIGINAL) ||
+			ImGui::MenuItem("COMMODORE AMIGA", "", type == Chip8Type::AMIGA_CHIP8)
+		) {
+			// Change type
+			printf("test\n");
 		}
 
-		if (ImGui::BeginMenu("Colors Schemes"))
-		{
-		    float sz = ImGui::GetTextLineHeight();
-		    for (int i = 0; i < Window::COLOR_SCHEME_ARRAY.size(); i++)
-		    {
-		        ImVec2 c1_pos = ImGui::GetCursorScreenPos();
-				ImVec2 c2_pos = {c1_pos.x + sz + 3, c1_pos.y};
+		ImGui::Separator();
 
-		        ImGui::GetWindowDrawList()->AddRectFilled(c1_pos, ImVec2(c1_pos.x + sz, c1_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].color1);
-				ImGui::GetWindowDrawList()->AddRectFilled(c2_pos, ImVec2(c2_pos.x + sz, c2_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].color2);
-		        ImGui::Dummy(ImVec2(sz * 2, sz));
-		        ImGui::SameLine();
-		        
-				if ( ImGui::MenuItem(Window::COLOR_SCHEME_ARRAY[i].name.c_str(), 
-						(i == 0) ? "default" : "",
-						(Window::seletected_color_scheme == i)
-				)) {
-					Window::seletected_color_scheme = i;
-				}
-		    }
-		    ImGui::EndMenu();
+		if (ImGui::MenuItem("Super Chip", "", false, false)) {}
+
+		if (ImGui::MenuItem("VERSION 1.0", "", type == Chip8Type::SUPER_1p0) ||
+			ImGui::MenuItem("VERSION 1.1", "", type == Chip8Type::SUPER_1p1)
+		) {
+			// Change type
+			printf("test2\n");
 		}
 
-		if (ImGui::MenuItem("Set instructions per second", NULL, false, true))
-        {
-			display_ips_config = true;
-        }
-
-		ImGui::MenuItem("Enable 0xFX1E overflow", NULL, &_chip8_ptr->_0xFX1E_overflow_enabled);
 		ImGui::EndMenu();
 	}
 }
@@ -231,7 +207,7 @@ void MenuBar::on_menu_state_save(int i)
 
 	// need to pause the program here, generate a save state, then resume the application
 	auto utc_timestamp = utc_time_in_seconds();
-	_chip8_ptr->save_program_state(i, utc_timestamp);
+	_chip8_ptr->save_program_state(_program_name, i, utc_timestamp);
 }
 
 void MenuBar::on_menu_state_load(int i)
@@ -243,7 +219,7 @@ void MenuBar::on_menu_state_load(int i)
 void MenuBar::on_menu_update_resolution(int i)
 {
 	float menu_bar_height = ImGui::GetFrameHeight();
-	SDL_SetWindowSize(_parent_window.window_ptr, Chip8::native_width * i, menu_bar_height + (Chip8::native_height * i));
+	SDL_SetWindowSize(_parent_window.window_ptr, _chip8_ptr->native_width * i, menu_bar_height + (_chip8_ptr->native_height * i));
 
 	selected_resolution_multiplier = i;
 }
@@ -283,7 +259,7 @@ void MenuBar::display_file_load_window()
 
             // You can now use the selected file path here
             printf("Selected file: %s\n", filePathName.c_str());
-			SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->DEFAULT_TITLE + " - " + fileDialog.GetCurrentFileName()).c_str());
+			SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->INTERPRETER_NAME + " - " + fileDialog.GetCurrentFileName()).c_str());
 
 			_chip8_ptr->is_running = _chip8_ptr->load_program(filePathName);
 
