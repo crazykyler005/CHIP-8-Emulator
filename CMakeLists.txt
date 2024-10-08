@@ -26,6 +26,8 @@ set(IMGUI_SRC
 	${CMAKE_SOURCE_DIR}/lib/imgui/backends/imgui_impl_sdlrenderer2.cpp
 )
 
+include_directories(${CMAKE_SOURCE_DIR}/src/Chip8)
+
 # Include ImGui headers
 include_directories(${CMAKE_SOURCE_DIR}/lib/imgui)
 include_directories(${CMAKE_SOURCE_DIR}/lib/imgui/backends)
@@ -35,7 +37,11 @@ add_executable(chip8
     src/main.cpp
     src/window.cpp
     src/screen.cpp
-    src/chip8.cpp
+
+    src/Chip8/chip8.cpp
+	src/Chip8/chip8interpreter.cpp
+	src/Chip8/superChip.cpp
+
     src/menubar.cpp
     src/helper_functions.cpp
 )

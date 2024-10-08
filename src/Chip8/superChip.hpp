@@ -1,4 +1,4 @@
-#include "chip8.hpp"
+#include "chip8interpreter.hpp"
 
 enum class ScrollDirection : uint8_t {
 	DOWN = 0,
@@ -7,23 +7,12 @@ enum class ScrollDirection : uint8_t {
 	UP
 };
 
-class SuperChip {
+class SuperChip : Chip8Interpreter {
 
 public:
-	inline static const std::string DEFAULT_TITLE = "Super Chip Emulator";
-
-	// 64 pixels width by 32 pixels height
-	inline static const uint8_t native_width = 128;
-	inline static const uint8_t native_height = 64;
-
-	void switch_type(Chip8Type type);
-
-protected:
-	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height);
-	// uint8_t px_states[native_width * native_height];
+	bool switch_type(Chip8Type type) override;
 
 private:
-	inline static const uint8_t SPRITE_PX_WIDTH = 16;
 
 	inline static uint8_t super_fontset[160] = {
 		0xF0, 0x90, 0x90, 0x90, 0xF0, 0x90, 0x90, 0x90, 0xF0, 0xF0, // 0
@@ -46,9 +35,12 @@ private:
 
 	void scroll_screen(ScrollDirection direction, uint8_t px_shift);
 	bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg);
+	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) override;
 	bool high_res_mode_en = false;
 
-	void interrupt_additional_data() = 0;
+	// TODO: Define this
+	void interrupt_additional_data() override;
 
+	// save to file instead
 	uint8_t user_flag_registers[8];
 };

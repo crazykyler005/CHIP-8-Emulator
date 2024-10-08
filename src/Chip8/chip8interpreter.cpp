@@ -1,64 +1,53 @@
+#include "helper_functions.hpp"
+#include "byteorder.h"
 
-#include "chip8.hpp"
+#include <random>
+#include <stdlib.h>
+#include <algorithm>
+#include <iterator>
+#include <filesystem>
+#include <cstring>
 
-Chip8::Chip8() {
-	INTERPRETER_NAME = "Chip-8";
-	SPRITE_PX_WIDTH = 8;
+#include "chip8interpreter.hpp"
 
-	px_states.resize(native_width * native_height);
+Chip8Interpreter::Chip8Interpreter() {
+	opcodes_per_second = 700;
 
-	native_width = 64;
-	native_height = 32;
+	// loading fontset into the designated position in memory (0-80)
+	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));
+
+	for (uint8_t i = 0; i < key_map.size(); i++) {
+		keys[i].map = key_map[i];
+	}
 }
 
-bool Chip8::switch_type(Chip8Type type)
-{
-	if (type != Chip8Type::ORIGINAL && type != Chip8Type::AMIGA_CHIP8) {
-		printf("Invalid type conversion");
-	}
-	
-	_type = type;
-	// increment_i = (_type != Chip8Type::SUPER_1p1);
-}
+void Chip8Interpreter::reset() {
+	program_ctr = PROGRAM_START_ADDR;
+	index_reg = 0;
 
-void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
-	// Reset register VF
-	registers[0xF] = 0;
-	// printf("x: %d, y: %d\n", x, y);
+	// clear stack
+	stack.clear();
 
-	// the starting x and y positions wrap
-	x = x % native_width;
-	y = y % native_height;
+	// clear all registers
+	memset(registers, 0, sizeof(registers));
 
-	// if the y position of the pixel is off the screen, stop drawing
-	for (uint8_t yline = 0; yline < pix_height && (y + yline) < native_height; yline++)
-	{
-		// Fetch the pixel value from the memory starting at location I
-		uint8_t pixel = memory[index_reg + yline];
-
-		// Loop over 8 bits of one row
-		// if the x position of the pixel is off the screen, stop drawing
-		for (int xline = 0; xline < SPRITE_PX_WIDTH && (x + xline) < native_width; xline++) {
-			// Check if the current evaluated pixel is set to 1 (note that 0x80 >> xline scan through the byte, one bit at the time)
-			if ((pixel & (0x80 >> xline)) != 0) {
-
-				// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
-				if (px_states[(x + xline + ((y + yline) * native_width))] == 1) {
-					registers[0xF] = 1;
-				}
-
-				// Set the pixel value by using XOR
-				px_states[x + xline + ((y + yline) * native_width)] ^= 1;
-			}
-		}
-	}
-
+	// Clear display
+	memset(px_states, false, sizeof(px_states));
 	draw_flag = true;
-	
-	return;
+
+	// Clear key_presses
+	cancel_key_wait_event();
+
+	delay_timer = 0;
+	sound_timer = 0;
+
+	is_paused = false;
+	play_sfx = false;
+	lowest_mem_addr_updated = 0xFFF;
 }
 
-void Chip8::cancel_key_wait_event() {
+
+void Chip8Interpreter::cancel_key_wait_event() {
 	wait_for_key_release = false;
 
 	for (auto& key : keys) {
@@ -67,7 +56,36 @@ void Chip8::cancel_key_wait_event() {
 	}
 }
 
-void Chip8::run_instruction() {
+bool Chip8Interpreter::load_program(std::string file_path)
+{
+	reset();
+
+	auto file = fopen((file_path).c_str(), "r");
+
+	if (file == NULL) {
+		return false;
+	}
+	
+	memset(memory + PROGRAM_START_ADDR, 0, sizeof(memory) - PROGRAM_START_ADDR);
+
+	for (uint16_t addr = PROGRAM_START_ADDR; addr < sizeof(memory) && !feof(file); addr++) {
+		memory[addr] = fgetc(file);
+	}
+
+	return true;
+}
+
+
+void process_key_event(uint8_t key_index, bool is_pressed)
+{
+	keys[key_index].is_pressed = is_pressed;
+
+	if (wait_for_key_release && !is_pressed) {
+		keys[key_index].released_on_wait_event = true;
+	}
+}
+
+void Chip8Interpreter::run_instruction() {
 
 	uint16_t opcode = (static_cast<uint16_t>(memory[program_ctr]) << 8) + memory[program_ctr + 1];
 
@@ -296,9 +314,15 @@ void Chip8::run_instruction() {
 			} else if (sub_opcode == 0x18) {
 				sound_timer = registers[VX_reg];
 
-			// Adds VX to I.
+			// Adds VX to I. The CHIP-8 interpreter for the Commodore Amiga sets VF to 1 when an overflow occurs from this.
+			// There is one known game that depends on this happening and at least one that doesn't.
 			} else if (sub_opcode == 0x1E) {
 				index_reg += registers[VX_reg];
+
+				// TODO: implement a setting from the menubar that enables this functionallity
+				if (_0xFX1E_overflow_enabled) {
+					registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
+				}
 
 			// Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font
 			} else if (sub_opcode == 0x29) {
@@ -353,29 +377,7 @@ switch_end:
 	program_ctr += 2;
 }
 
-bool Chip8::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) {
-
-	// No operation
-	if (opcode == 0x0000) {
-		(void);
-
-	// Stop
-	} else if (opcode == 0xF000) {
-		is_running = false;
-		
-	// Modified instruction: FX1E - If the result of VX+I overflows set VF to 1
-	// There is one known game that depends on this modified behavior happening.
-	} else if (opcode & 0xF0FF == F01E) {
-		index_reg += registers[VX_reg];
-		registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
-	} else {
-		return false;
-	}
-
-	return true;
-}
-
-void Chip8::countdown_timers() 
+void Chip8Interpreter::countdown_timers() 
 {
 	if (delay_timer > 0)
 		--delay_timer;
@@ -406,7 +408,7 @@ void Chip8::countdown_timers()
 // - 2 byte lowest memory address update by the program/game
 // - x byte memory from lowest memory address overwritten and onward
 // - TODO: add a CRC to the end of the file and check if it is valid when loading it
-bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp) 
+bool Chip8Interpreter::save_program_state(uint8_t state_number, uint32_t utc_timestamp) 
 {
 	return false;
 
@@ -501,7 +503,7 @@ bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp)
 	return true;
 }
 
-void Chip8::load_program_state(std::string file_name) {
+void Chip8Interpreter::load_program_state(std::string file_name) {
 
 	if (file_name.size() == 0) {
 		return;

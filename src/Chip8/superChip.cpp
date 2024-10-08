@@ -1,22 +1,34 @@
-#include "SuperChip.hpp"
+#include "superChip.hpp"
 
 SuperChip::SuperChip() {
-	// loading high res fontset into the designated position in memory (0-80)
+	INTERPRETER_NAME = "Super Chip Emulator";
+	SPRITE_PX_WIDTH = 16;
+	px_states.resize(native_width * native_height);
+
+	native_width = 128;
+	native_height = 64;
+
+	// loading high res fontset into the designated position in memory (81-240)
 	std::copy(std::begin(super_fontset), std::end(super_fontset), std::begin(memory + sizeof(fontset)));
 
 	opcodes_per_second = 1800;
 	increment_i = false;
 }
 
-void switch_type(Chip8Type type)
+bool SuperChip::switch_type(Chip8Type type)
 {
+	if (type != Chip8Type::SUPER_1p0 && type != Chip8Type::SUPER_1p1) {
+		printf("Invalid type conversion");
+	}
+	
 	_type = type;
 	increment_i = (_type != Chip8Type::SUPER_1p1);
 }
 
 void SuperChip::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
-	static bool high_res_mode_en = true;
+	// used to determine if a pixel is represented by x on screen pixels
 	uint8_t pixel_size = 1;
+	static bool high_res_mode_en = true;
 
 	// Reset register VF
 	registers[0xF] = 0;
@@ -259,4 +271,10 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 
 	program_ctr += 2;
 	return true;
+}
+
+// TODO: Define this
+void SuperChip::interrupt_additional_data()
+{
+	return;
 }

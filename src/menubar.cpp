@@ -49,21 +49,6 @@ void MenuBar::add_file_menu()
 		}
 
 		ImGui::Separator();
-		// if (ImGui::BeginMenu("Options"))
-		// {
-		//     static bool enabled = true;
-		//     ImGui::MenuItem("Enabled", "", &enabled);
-		//     ImGui::BeginChild("child", ImVec2(0, 60), ImGuiChildFlags_Borders);
-		//     for (int i = 0; i < 10; i++)
-		//         ImGui::Text("Scrolling Text %d", i);
-		//     ImGui::EndChild();
-		//     static float f = 0.5f;
-		//     static int n = 0;
-		//     ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
-		//     ImGui::InputFloat("Input", &f, 0.1f);
-		//     ImGui::Combo("Combo", &n, "Yes\0No\0Maybe\0\0");
-		//     ImGui::EndMenu();
-		// }
 
 		if (ImGui::MenuItem("Quit", "Alt+F4")) {
 			_parent_window.close();
@@ -114,6 +99,61 @@ void MenuBar::add_states_menu()
 void MenuBar::add_settings_menu()
 {
 	if (ImGui::BeginMenu("Settings"))
+	{
+		ImGui::MenuItem("Disable sound", NULL, &_chip8_ptr->sound_disabled);
+
+		if (ImGui::MenuItem("Pause", "ctrl p", &_chip8_ptr->is_paused));
+
+		if (ImGui::BeginMenu("Resolution"))
+		{
+			for (int i = 4; i <= 16; i+=4) {
+
+				auto action_name = "x" + std::to_string(i);
+
+				if (ImGui::MenuItem((action_name).c_str(), NULL, (i == selected_resolution_multiplier))) {
+					on_menu_update_resolution(i);
+				}
+			}
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Colors Schemes"))
+		{
+		    float sz = ImGui::GetTextLineHeight();
+		    for (int i = 0; i < Window::COLOR_SCHEME_ARRAY.size(); i++)
+		    {
+		        ImVec2 c1_pos = ImGui::GetCursorScreenPos();
+				ImVec2 c2_pos = {c1_pos.x + sz + 3, c1_pos.y};
+
+		        ImGui::GetWindowDrawList()->AddRectFilled(c1_pos, ImVec2(c1_pos.x + sz, c1_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].color1);
+				ImGui::GetWindowDrawList()->AddRectFilled(c2_pos, ImVec2(c2_pos.x + sz, c2_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].color2);
+		        ImGui::Dummy(ImVec2(sz * 2, sz));
+		        ImGui::SameLine();
+		        
+				if ( ImGui::MenuItem(Window::COLOR_SCHEME_ARRAY[i].name.c_str(), 
+						(i == 0) ? "default" : "",
+						(Window::seletected_color_scheme == i)
+				)) {
+					Window::seletected_color_scheme = i;
+				}
+		    }
+		    ImGui::EndMenu();
+		}
+
+		if (ImGui::MenuItem("Set instructions per second", NULL, false, true))
+        {
+			display_ips_config = true;
+        }
+
+		ImGui::MenuItem("Enable 0xFX1E overflow", NULL, &_chip8_ptr->_0xFX1E_overflow_enabled);
+		ImGui::EndMenu();
+	}
+}
+
+void MenuBar::add_intrepreter_menu()
+{
+	if (ImGui::BeginMenu("Intrepreters"))
 	{
 		ImGui::MenuItem("Disable sound", NULL, &_chip8_ptr->sound_disabled);
 
