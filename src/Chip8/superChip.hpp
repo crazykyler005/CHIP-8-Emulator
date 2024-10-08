@@ -1,3 +1,5 @@
+# pragma once
+
 #include "chip8interpreter.hpp"
 
 enum class ScrollDirection : uint8_t {
@@ -33,14 +35,14 @@ private:
 		0xF0, 0x80, 0x80, 0xF0, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80  // F
 	};
 
-	void scroll_screen(ScrollDirection direction, uint8_t px_shift);
+	void scroll_screen(ScrollDirection direction, uint8_t px_shift = 4);
 	bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg);
 	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) override;
-	bool high_res_mode_en = false;
+	bool _high_res_mode_en = false;
 
 	// TODO: Define this
 	void interrupt_additional_data() override;
 
-	// save to file instead
+	// TODO: save to file instead
 	uint8_t user_flag_registers[8];
 };

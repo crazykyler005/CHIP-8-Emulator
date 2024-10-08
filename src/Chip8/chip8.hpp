@@ -13,11 +13,6 @@ public:
 
 	bool switch_type(Chip8Type type) override;
 
-	// TODO: optimise how pixel states are stored by changing the above array to the following 
-	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable
-	// uint8_t px_states[32] = {};
-	// uint8_t px_states[(64 * 32) / 8] = {};
-
 protected:
 	Chip8Type _type = Chip8Type::ORIGINAL;
 
@@ -26,8 +21,6 @@ protected:
 	bool increment_i = true;
 	bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) override;
 	std::vector<uint8_t> additional_data;
-
-	void process_key_event(uint8_t key_index, bool is_pressed);
 
 private:
 	std::string program_name = "";

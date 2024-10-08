@@ -43,7 +43,7 @@ public:
 	virtual bool save_program_state(uint8_t state_number, uint32_t utc_timestamp);
 	virtual void load_program_state(std::string file_name);
 
-	virtual void process_key_event();
+	virtual void process_key_event(uint8_t key_index, bool is_pressed);
 
 	virtual void countdown_timers();
 
@@ -63,6 +63,9 @@ public:
 	bool play_sfx = false;
 	bool sound_disabled;
 
+	// TODO: optimise how pixel states are stored by changing the above array to the following 
+	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable
+	// std::vector<uint8_t> px_states[(64 * 32) / 8] = {};
 	std::vector<bool> px_states;
 
 	const uint8_t native_width;
@@ -74,7 +77,7 @@ protected:
 	// Before the CHIP-8 interpreters CHIP48 and SUPER-CHIP (1970s - 1980s), the I register
 	// was incremented each time it stored or loaded one register. (I += X + 1).
 	bool increment_i = true;
-	virtual bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) = 0;
+	virtual bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) { return false; };
 	std::vector<uint8_t> additional_data;
 
 	inline static uint8_t fontset[80] =

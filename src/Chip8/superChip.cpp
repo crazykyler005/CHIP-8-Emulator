@@ -18,24 +18,26 @@ SuperChip::SuperChip() {
 bool SuperChip::switch_type(Chip8Type type)
 {
 	if (type != Chip8Type::SUPER_1p0 && type != Chip8Type::SUPER_1p1) {
-		printf("Invalid type conversion");
+		printf("Invalid type conversion\n");
+		return false;
 	}
 	
 	_type = type;
 	increment_i = (_type != Chip8Type::SUPER_1p1);
+
+	return true;
 }
 
 void SuperChip::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 	// used to determine if a pixel is represented by x on screen pixels
 	uint8_t pixel_size = 1;
-	static bool high_res_mode_en = true;
 
 	// Reset register VF
 	registers[0xF] = 0;
 	// printf("x: %d, y: %d\n", x, y);
 
 	// the starting x and y positions wrap
-	if (high_res_mode_en) {
+	if (_high_res_mode_en) {
 		x = x % native_width;
 		y = y % native_height;
 
@@ -91,8 +93,8 @@ void SuperChip::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 
 void SuperChip::scroll_screen(ScrollDirection direction, uint8_t px_shift)
 {
-	if (high_res_mode_en) {
-		px_shift = px_shift / 2
+	if (!_high_res_mode_en) {
+		px_shift = px_shift / 2;
 	}
 
 	if (direction == ScrollDirection::DOWN) {
@@ -189,10 +191,10 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 				is_running = false;
 
 			} else if (opcode == 0xFE) {
-				high_res_mode_en = false
+				_high_res_mode_en = false
 
 			} else if (opcode == 0xFF) {
-				high_res_mode_en = true
+				_high_res_mode_en = true
 				
 			} else {
 				return false;
