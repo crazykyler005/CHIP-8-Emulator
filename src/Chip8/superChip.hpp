@@ -12,7 +12,7 @@ enum class ScrollDirection : uint8_t {
 class SuperChip : public Chip8Interpreter {
 
 public:
-	SuperChip();
+	SuperChip(Chip8Type type);
 	bool switch_type(Chip8Type type) override;
 
 private:

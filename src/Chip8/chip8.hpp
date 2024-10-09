@@ -6,16 +6,12 @@
 class Chip8 : public Chip8Interpreter {
 
 public:
-	Chip8();
+	Chip8(Chip8Type type);
 
 	bool wait_for_key_release = false;
-	bool _0xFX1E_overflow_enabled = false;
-
 	bool switch_type(Chip8Type type) override;
 
 protected:
-	Chip8Type _type = Chip8Type::ORIGINAL;
-
 	bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) override;
 	std::vector<uint8_t> additional_data;
 

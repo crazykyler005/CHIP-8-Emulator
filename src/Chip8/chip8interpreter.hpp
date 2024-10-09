@@ -31,13 +31,13 @@ struct key_info {
 };
 
 public:
-	Chip8Interpreter(uint8_t width, uint8_t height, uint8_t sprite_width);
+	Chip8Interpreter(std::string name, uint8_t width, uint8_t height, uint8_t sprite_width);
 
 	const uint8_t native_width;
 	const uint8_t native_height;
 
 	virtual bool switch_type(Chip8Type type) = 0;
-	virtual Chip8Type get_type() { return _type; };
+	virtual Chip8Type& get_type() { return _type; };
 
 	virtual void reset();
 
@@ -54,7 +54,7 @@ public:
 	inline static const time_t HZ_PER_SECOND = 60;
 	uint16_t opcodes_per_second = 700;
 
-	std::string INTERPRETER_NAME;
+	const std::string INTERPRETER_NAME;
 
 	std::array<key_info, 16> keys = {};
 	bool draw_flag = false;

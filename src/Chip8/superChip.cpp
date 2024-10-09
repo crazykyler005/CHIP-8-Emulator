@@ -1,16 +1,17 @@
 #include "superChip.hpp"
 
-SuperChip::SuperChip() : 
-	Chip8Interpreter(128, 64, 16)
+SuperChip::SuperChip(Chip8Type type) : 
+	Chip8Interpreter("Super Chip", 128, 64, 16)
 {
-	INTERPRETER_NAME = "Super Chip";
-	px_states.resize(native_width * native_height);
+	_type = type;
 
 	// loading high res fontset into the designated position in memory (81-240)
 	std::copy(std::begin(super_fontset), std::end(super_fontset), std::begin(memory) + sizeof(fontset));
 
 	opcodes_per_second = 1800;
 	increment_i = false;
+
+	printf("test\n");
 }
 
 bool SuperChip::switch_type(Chip8Type type)

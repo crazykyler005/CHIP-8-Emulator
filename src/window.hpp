@@ -45,6 +45,9 @@ public:
 	Window();
 	~Window();
 	int init();
+
+	void switch_interpreter(Chip8Type type);
+
 	void main_loop();
 	void start_game_loop();
 	void game_loop();
@@ -72,18 +75,18 @@ public:
 
 	static inline uint8_t seletected_color_scheme = 0;
 
-protected:
-	std::unique_ptr<MenuBar> m_menubar;
-	Screen screen;
-
 private:
 	inline static const int MIN_WINDOW_WIDTH = 250;
 	inline static const int MIN_WINDOW_HEIGHT = 125;
 	inline static const int _native_menubar_height = 25;
 
-	Chip8 chip8;
+	std::shared_ptr<Chip8Interpreter> _chip8_ptr = std::make_shared<Chip8>(Chip8Type::ORIGINAL);
 
 	bool running = true;
+
+protected:
+	std::unique_ptr<MenuBar> m_menubar;
+	Screen screen;
 };
 
 #endif

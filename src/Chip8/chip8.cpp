@@ -1,11 +1,10 @@
 
 #include "chip8.hpp"
 
-Chip8::Chip8() : 
-	Chip8Interpreter(64, 32, 8)
+Chip8::Chip8(Chip8Type type) :
+	Chip8Interpreter("Chip-8", 64, 32, 8)
 {
-	INTERPRETER_NAME = "Chip-8";
-	px_states.resize(native_width * native_height);
+	_type = type;
 }
 
 bool Chip8::switch_type(Chip8Type type)

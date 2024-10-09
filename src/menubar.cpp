@@ -7,7 +7,7 @@
 
 static bool display_ips_config = false;
 
-MenuBar::MenuBar(Chip8* chip8_pointer, Window& parent_window)
+MenuBar::MenuBar(std::shared_ptr<Chip8Interpreter> chip8_pointer, Window& parent_window)
 	: _chip8_ptr(chip8_pointer), _parent_window(parent_window)
 {
 }
@@ -147,7 +147,6 @@ void MenuBar::add_settings_menu()
 			display_ips_config = true;
         }
 
-		ImGui::MenuItem("Enable 0xFX1E overflow", NULL, &_chip8_ptr->_0xFX1E_overflow_enabled);
 		ImGui::EndMenu();
 	}
 }
@@ -156,26 +155,37 @@ void MenuBar::add_intrepreter_menu()
 {
 	if (ImGui::BeginMenu("Intrepreters"))
 	{
-		auto type = _chip8_ptr->get_type();
+		static auto selected_type = Chip8Type::END;
+		auto& type = _chip8_ptr->get_type();
 
 		if (ImGui::MenuItem("Chip 8", "", false, false)) {}
 
-		if (ImGui::MenuItem("COSMAC VIP", "Original", type == Chip8Type::ORIGINAL) ||
-			ImGui::MenuItem("COMMODORE AMIGA", "", type == Chip8Type::AMIGA_CHIP8)
-		) {
-			// Change type
-			printf("test\n");
+		if (ImGui::MenuItem("COSMAC VIP", "Original", type == Chip8Type::ORIGINAL)) {
+			selected_type = Chip8Type::ORIGINAL;
+		}
+
+		if (ImGui::MenuItem("COMMODORE AMIGA", "", type == Chip8Type::AMIGA_CHIP8)) {
+			selected_type = Chip8Type::AMIGA_CHIP8;
 		}
 
 		ImGui::Separator();
 
 		if (ImGui::MenuItem("Super Chip", "", false, false)) {}
 
-		if (ImGui::MenuItem("VERSION 1.0", "", type == Chip8Type::SUPER_1p0) ||
-			ImGui::MenuItem("VERSION 1.1", "", type == Chip8Type::SUPER_1p1)
-		) {
-			// Change type
-			printf("test2\n");
+		if (ImGui::MenuItem("VERSION 1.0", "", type == Chip8Type::SUPER_1p0)) {
+			selected_type = Chip8Type::SUPER_1p0;
+		}
+		if (ImGui::MenuItem("VERSION 1.1", "", type == Chip8Type::SUPER_1p1)) {
+			selected_type = Chip8Type::SUPER_1p1;
+		}
+
+		if (selected_type != Chip8Type::END) {
+			if (!_chip8_ptr->switch_type(selected_type)) {
+				_parent_window.switch_interpreter(selected_type);
+			}
+
+			selected_type = Chip8Type::END;
+			printf("selected type: %d\n", _chip8_ptr->get_type());
 		}
 
 		ImGui::EndMenu();

@@ -7,10 +7,9 @@ std::mutex mtx;
 static bool update_texture = false;
 
 Window::Window()
- 	: m_menubar(std::make_unique<MenuBar>(&chip8, *this)),
-	screen(&chip8, *this)
+ 	: m_menubar(std::make_unique<MenuBar>(_chip8_ptr, *this)),
+	screen(_chip8_ptr, *this)
 {
-
 }
 
 Window::~Window()
@@ -38,8 +37,8 @@ int Window::init() {
 		"window",
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
-		chip8.native_width * m_menubar->selected_resolution_multiplier,
-		chip8.native_height * m_menubar->selected_resolution_multiplier,
+		_chip8_ptr->native_width * m_menubar->selected_resolution_multiplier,
+		_chip8_ptr->native_height * m_menubar->selected_resolution_multiplier,
 		SDL_WINDOW_SHOWN
 	);
 
@@ -71,6 +70,27 @@ int Window::init() {
 	screen.generate_texture();
 
 	return 0;
+}
+
+void Window::switch_interpreter(Chip8Type type)
+{
+
+	_chip8_ptr->is_running = false;
+
+	// wait for game loop thread to finish
+	std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_second)) * 2));
+
+	if (type < Chip8Type::SUPER_1p0) {
+		_chip8_ptr = std::make_shared<Chip8>(type);
+	} else {
+		_chip8_ptr = std::make_shared<SuperChip>(type);
+	}
+
+	m_menubar->set_chip8_pointer(_chip8_ptr);
+	screen.set_chip8_pointer(_chip8_ptr);
+
+	_chip8_ptr->is_running = true;
+	start_game_loop();
 }
 
 void Window::main_loop() 
@@ -116,38 +136,38 @@ void Window::main_loop()
 
 void Window::game_loop()
 {
-	auto fps = std::chrono::microseconds(get_microseconds_in_second() / chip8.HZ_PER_SECOND);
+	auto fps = std::chrono::microseconds(get_microseconds_in_second() / _chip8_ptr->HZ_PER_SECOND);
 	auto start_time = std::chrono::steady_clock::now();
 
-	while (chip8.is_running) {
-		if (chip8.is_paused) {
+	while (_chip8_ptr->is_running) {
+		if (_chip8_ptr->is_paused) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			continue;
 		}
 
-		chip8.run_instruction();
+		_chip8_ptr->run_instruction();
 
 		if (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time) >= fps) {
 
 			std::lock_guard<std::mutex> lock(mtx);
 
 			start_time = std::chrono::steady_clock::now();
-			chip8.countdown_timers();
+			_chip8_ptr->countdown_timers();
 
-			if (chip8.play_sfx) {
-				chip8.play_sfx = false;
+			if (_chip8_ptr->play_sfx) {
+				_chip8_ptr->play_sfx = false;
 
 				std::thread sound_worker(&Window::play_sound, this);
 				sound_worker.detach();
 			}
 
-			if (chip8.draw_flag) {
-				chip8.draw_flag = false;
+			if (_chip8_ptr->draw_flag) {
+				_chip8_ptr->draw_flag = false;
 				update_texture = true;
 			}
 		}
 
-		sleep_thread_microseconds(get_microseconds_in_second() / chip8.opcodes_per_second);
+		sleep_thread_microseconds(get_microseconds_in_second() / _chip8_ptr->opcodes_per_second);
 	}
 }
 
@@ -165,45 +185,45 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 	// if ctrl or alt modifiers are used, when a key within 
 	// the key_map is pressed, it's considered invalid
 	if (((modifier & (KMOD_CTRL | KMOD_ALT)) == KMOD_NONE)) {
-		for (uint8_t i = 0; i < chip8.keys.size(); i++) {
-			auto& key = chip8.keys[i];
+		for (uint8_t i = 0; i < _chip8_ptr->keys.size(); i++) {
+			auto& key = _chip8_ptr->keys[i];
 
 			// if the physical position of the pressed key matches an accepted postion
 			if (key.map == SDL_GetScancodeFromKey(char_pressed)) {
-				chip8.process_key_event(i, is_press_event);
+				_chip8_ptr->process_key_event(i, is_press_event);
 				return;
 			}
 		}
 
 	} else if (is_press_event && ((modifier & ~(KMOD_CTRL | KMOD_ALT)) == KMOD_NONE) &&
-		((modifier & KMOD_CTRL) & KMOD_CTRL) && chip8.is_running) {
+		((modifier & KMOD_CTRL) & KMOD_CTRL) && _chip8_ptr->is_running) {
 		if (char_pressed == SDLK_s) {
 
 		} else if (char_pressed == SDLK_l) {
 			
 		} else if (char_pressed == SDLK_p) {
-			if (chip8.is_paused) {
-				chip8.is_paused = false;
+			if (_chip8_ptr->is_paused) {
+				_chip8_ptr->is_paused = false;
 				return;
 			}
 
-			chip8.is_paused = true;
+			_chip8_ptr->is_paused = true;
 
 		// run one instruction at a time
 		} else if (char_pressed == SDLK_RIGHT) {
-			if (chip8.is_paused) {
-				chip8.run_instruction();
+			if (_chip8_ptr->is_paused) {
+				_chip8_ptr->run_instruction();
 
-				if (chip8.draw_flag) {
-					chip8.draw_flag = false;
+				if (_chip8_ptr->draw_flag) {
+					_chip8_ptr->draw_flag = false;
 					update_texture = true;
 				}
 			}
 
 		// countdown timers 
 		} else if (char_pressed == SDLK_DOWN) {
-			if (chip8.is_paused) {
-				chip8.countdown_timers();
+			if (_chip8_ptr->is_paused) {
+				_chip8_ptr->countdown_timers();
 			}
 		}
 

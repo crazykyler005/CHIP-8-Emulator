@@ -10,8 +10,8 @@
 
 #include "chip8interpreter.hpp"
 
-Chip8Interpreter::Chip8Interpreter(uint8_t width, uint8_t height, uint8_t sprite_width) :
-	native_width(width), native_height(height), SPRITE_PX_WIDTH(sprite_width)
+Chip8Interpreter::Chip8Interpreter(std::string name, uint8_t width, uint8_t height, uint8_t sprite_width) :
+	INTERPRETER_NAME(name), native_width(width), native_height(height), SPRITE_PX_WIDTH(sprite_width)
 {
 	// loading fontset into the designated position in memory (0-80)
 	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));
@@ -19,6 +19,8 @@ Chip8Interpreter::Chip8Interpreter(uint8_t width, uint8_t height, uint8_t sprite
 	for (uint8_t i = 0; i < key_map.size(); i++) {
 		keys[i].map = key_map[i];
 	}
+
+	px_states.resize(native_width * native_height);
 }
 
 void Chip8Interpreter::reset() {
@@ -177,45 +179,54 @@ void Chip8Interpreter::run_instruction() {
 			if (sub_opcode == 0) {
 				registers[VX_reg] = registers[VY_reg];
 			} else if (sub_opcode == 1) {
-				registers[0xF] = 0;
 				registers[VX_reg] |= registers[VY_reg];
+				registers[0xF] = 0;
 			} else if (sub_opcode == 2) {
-				registers[0xF] = 0;
 				registers[VX_reg] &= registers[VY_reg];
-			} else if (sub_opcode == 3) {
 				registers[0xF] = 0;
+			} else if (sub_opcode == 3) {
 				registers[VX_reg] ^= registers[VY_reg];
+				registers[0xF] = 0;
 
 			// Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not.
 			} else if (sub_opcode == 4) {
+				auto previous_VX = registers[VX_reg];
 				registers[VX_reg] += registers[VY_reg];
-				registers[0xF] = (registers[VY_reg] > (0xFF - registers[VX_reg])) ? 1 : 0;
+
+				registers[0xF] = ((registers[VY_reg] + previous_VX) > 0xFF) ? 1 : 0;
 
 			// VY is subtracted from VX. VF is set to 0 when there's an underflow, and 1 when there is not.
 			} else if (sub_opcode == 5) {
-				registers[0xF] = (registers[VY_reg] > registers[VX_reg]) ? 0 : 1;
+				auto previous_VX = registers[VX_reg];
 				registers[VX_reg] -= registers[VY_reg];
 
-			// Shifts VX to the right by 1, then stores the least significant bit of VX prior to the shift into VF.
+				registers[0xF] = (registers[VY_reg] > previous_VX) ? 0 : 1;
+
+			// Store the value of register VY shifted right one bit in register VX. Set register VF to the
+			// least significant bit prior to the shift
 			} else if (sub_opcode == 6) {
 				// CHIP-48 and SUPER-CHIP version skip this first step
-				registers[VX_reg] = registers[VY_reg];
+				auto previous_value = registers[VY_reg];
 
-				registers[0xF] = registers[VX_reg] & 0x1;
+				registers[VX_reg] = registers[VY_reg];
 				registers[VX_reg] >>= 1;
+
+				registers[0xF] = previous_value & 0x1;
 
 			// Sets VX to VY minus VX. VF is set to 0 when there's an underflow, and 1 when there is not
 			} else if (sub_opcode == 7) {
-				registers[0xF] = (registers[VX_reg] > registers[VY_reg]) ? 0 : 1;
 				registers[VX_reg] = registers[VY_reg] - registers[VX_reg];
+				registers[0xF] = (registers[VX_reg] > registers[VY_reg]) ? 0 : 1;
 
 			// Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset.
 			} else if (sub_opcode == 0xE) {
 				// CHIP-48 and SUPER-CHIP version skip this first step
-				registers[VX_reg] = registers[VY_reg];
+				auto previous_value = registers[VY_reg];
 
-				registers[0xF] = (registers[VX_reg] & 0x80) ? 1 : 0;
+				registers[VX_reg] = registers[VY_reg];
 				registers[VX_reg] <<= 1;
+
+				registers[0xF] = (previous_value & 0x80) ? 1 : 0;
 			}
 			break;
 
