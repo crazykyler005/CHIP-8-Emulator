@@ -30,6 +30,8 @@ void Chip8Interpreter::reset() {
 	// clear stack
 	stack.clear();
 
+	std::copy(std::begin(application_bytes), std::end(application_bytes), std::begin(memory) + PROGRAM_START_ADDR);
+
 	// clear all registers
 	memset(registers, 0, sizeof(registers));
 
@@ -60,18 +62,20 @@ void Chip8Interpreter::cancel_key_wait_event() {
 
 bool Chip8Interpreter::load_program(std::string file_path)
 {
-	reset();
-
 	auto file = fopen((file_path).c_str(), "r");
 
 	if (file == NULL) {
 		return false;
 	}
 	
+	memset(application_bytes, 0, sizeof(application_bytes));
 	memset(memory + PROGRAM_START_ADDR, 0, sizeof(memory) - PROGRAM_START_ADDR);
 
 	for (uint16_t addr = PROGRAM_START_ADDR; addr < sizeof(memory) && !feof(file); addr++) {
-		memory[addr] = fgetc(file);
+		auto byte = fgetc(file);
+
+		application_bytes[addr - PROGRAM_START_ADDR] = byte;
+		memory[addr] = byte;
 	}
 
 	return true;
@@ -95,6 +99,11 @@ void Chip8Interpreter::run_instruction() {
 	uint8_t VY_reg = (opcode >> 4) & 0xF; // 2nd nibble
 
 	// printf("opcode: %x, i: %d, pc: %d, reg[vx]: %d, VX_reg: %d\n", opcode, index_reg, program_ctr, registers[VX_reg], VX_reg);
+
+	// DXYN is the slowest command to run so to emulate this we wait until the next frame the run the next instruction
+	if (wait_for_display_update && draw_flag) {
+		return;
+	}
 
 	if (run_additional_or_modified_instructions(opcode, VX_reg, VY_reg)) {
 		return;
@@ -205,9 +214,9 @@ void Chip8Interpreter::run_instruction() {
 			// Store the value of register VY shifted right one bit in register VX. Set register VF to the
 			// least significant bit prior to the shift
 			} else if (sub_opcode == 6) {
-				// CHIP-48 and SUPER-CHIP version skip this first step
 				auto previous_value = registers[VY_reg];
 
+				// CHIP-48 and SUPER-CHIP version skip this first step
 				registers[VX_reg] = registers[VY_reg];
 				registers[VX_reg] >>= 1;
 
@@ -220,9 +229,9 @@ void Chip8Interpreter::run_instruction() {
 
 			// Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset.
 			} else if (sub_opcode == 0xE) {
-				// CHIP-48 and SUPER-CHIP version skip this first step
 				auto previous_value = registers[VY_reg];
 
+				// CHIP-48 and SUPER-CHIP version skip this first step
 				registers[VX_reg] = registers[VY_reg];
 				registers[VX_reg] <<= 1;
 

@@ -74,11 +74,7 @@ int Window::init() {
 
 void Window::switch_interpreter(Chip8Type type)
 {
-
-	_chip8_ptr->is_running = false;
-
-	// wait for game loop thread to finish
-	std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_second)) * 2));
+	stop_game_loop();
 
 	if (type < Chip8Type::SUPER_1p0) {
 		_chip8_ptr = std::make_shared<Chip8>(type);
@@ -89,7 +85,11 @@ void Window::switch_interpreter(Chip8Type type)
 	m_menubar->set_chip8_pointer(_chip8_ptr);
 	screen.set_chip8_pointer(_chip8_ptr);
 
-	_chip8_ptr->is_running = true;
+	// updates texture based on new native dimensions
+	screen.generate_texture();
+	// load program into new Chip8Inerpreter instance
+	_chip8_ptr->reset();
+
 	start_game_loop();
 }
 
@@ -142,7 +142,12 @@ void Window::game_loop()
 	while (_chip8_ptr->is_running) {
 		if (_chip8_ptr->is_paused) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			continue;
+
+			if (!is_run_one_instruction) {
+				continue;
+			}
+
+			is_run_one_instruction = false;
 		}
 
 		_chip8_ptr->run_instruction();
@@ -171,8 +176,34 @@ void Window::game_loop()
 	}
 }
 
+void Window::run_single_instruction() {
+	static uint16_t ran_instructions = 0;
+	uint16_t max_instruction_per_frame = (_chip8_ptr->opcodes_per_second / _chip8_ptr->HZ_PER_SECOND);
+
+	_chip8_ptr->print_current_opcode();
+	_chip8_ptr->run_instruction();
+
+	if (++ran_instructions >= max_instruction_per_frame) {
+		_chip8_ptr->countdown_timers();
+		ran_instructions = 0;
+	}
+
+	if (_chip8_ptr->play_sfx) {
+		_chip8_ptr->play_sfx = false;
+
+		std::thread sound_worker(&Window::play_sound, this);
+		sound_worker.detach();
+	}
+
+	if (_chip8_ptr->draw_flag) {
+		_chip8_ptr->draw_flag = false;
+		update_texture = true;
+	}
+}
+
 void Window::start_game_loop()
 {
+	_chip8_ptr->is_running = true;
 	std::thread worker(&Window::game_loop, this);
 	worker.detach();
 }
@@ -211,21 +242,16 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 
 		// run one instruction at a time
 		} else if (char_pressed == SDLK_RIGHT) {
-			if (_chip8_ptr->is_paused) {
-				_chip8_ptr->run_instruction();
-
-				if (_chip8_ptr->draw_flag) {
-					_chip8_ptr->draw_flag = false;
-					update_texture = true;
-				}
-			}
-
-		// countdown timers 
-		} else if (char_pressed == SDLK_DOWN) {
-			if (_chip8_ptr->is_paused) {
-				_chip8_ptr->countdown_timers();
+			if (_chip8_ptr->is_paused && _chip8_ptr->is_running) {
+				run_single_instruction();
 			}
 		}
+
+		// // countdown timers 
+		// } else if (char_pressed == SDLK_DOWN) {
+		// 	_chip8_ptr->countdown_timers()
+		// 	}
+		// }
 
 		// printf("Valid ctrl press\n");
 		return;
@@ -234,6 +260,17 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 	// printf("char: %c, state: %d\n", char_pressed, modifier);
 
   	return;
+}
+
+void Window::stop_game_loop() {
+	if (!_chip8_ptr->is_running) {
+		return;
+	}
+
+	_chip8_ptr->is_running = false;
+
+	// wait for game loop thread to finish
+	std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_second)) * 2));
 }
 
 void adjust_volume(uint8_t* wav_buffer, uint32_t wav_length, SDL_AudioSpec* wav_spec, float volume) {

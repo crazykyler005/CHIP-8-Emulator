@@ -45,6 +45,9 @@ public:
 	virtual bool load_program(std::string file_path);
 	virtual bool save_program_state(std::string& program_name, uint8_t state_number, uint32_t utc_timestamp);
 	virtual void load_program_state(std::string file_name);
+	virtual void print_current_opcode() { 
+		printf("opcode: %04x\n", (static_cast<uint16_t>(memory[program_ctr]) << 8) + memory[program_ctr + 1]); 
+	};
 
 	virtual void process_key_event(uint8_t& key_index, bool is_pressed);
 	virtual void cancel_key_wait_event();
@@ -60,6 +63,8 @@ public:
 	bool draw_flag = false;
 
 	bool wait_for_key_release = false;
+
+	inline static bool wait_for_display_update = true;
 
 	bool is_paused = false;
 	bool is_running = false;
@@ -85,6 +90,9 @@ protected:
 	// 0x200 because the interpreter occupied the first 512 bytes
 	inline static const uint16_t PROGRAM_START_ADDR = 0x200;
 
+	// stores an unmodified version of the application in the case that an opcode modifies it
+	inline static uint8_t application_bytes[MEMORY_SIZE - PROGRAM_START_ADDR];
+
 	// stack is used to remeber the current location before a jump operation is made
 	// the program counter gets stored in the stack
 	inline static size_t MAX_STACK_SIZE = 16;
@@ -93,7 +101,7 @@ protected:
 	Chip8Type _type;
 	const uint8_t SPRITE_PX_WIDTH;
 
-	uint8_t memory[4096] = {};
+	uint8_t memory[MEMORY_SIZE] = {};
 	uint8_t registers[16] = {};
 
 	uint16_t index_reg = 0;

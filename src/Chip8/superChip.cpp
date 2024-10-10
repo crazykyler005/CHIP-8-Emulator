@@ -10,8 +10,6 @@ SuperChip::SuperChip(Chip8Type type) :
 
 	opcodes_per_second = 1800;
 	increment_i = false;
-
-	printf("test\n");
 }
 
 bool SuperChip::switch_type(Chip8Type type)
@@ -53,13 +51,23 @@ void SuperChip::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 	for (uint8_t yline = 0; yline < pix_height; yline += pixel_size)
 	{
 		// Fetch the pixel value from the memory starting at location I
-		uint8_t pixel = memory[index_reg + yline];
+		// uint8_t pixel = memory[index_reg + yline];
+
+		uint16_t pixels = 0;
+
+		if (!_high_res_mode_en) {
+			for (uint8_t z = 0; z < SPRITE_PX_WIDTH / 2; z++) {
+				auto px = memory[index_reg + yline] & (1 << z);
+				pixels = (px << (1 + z)) + (px << (z)) | pixels;
+			}
+		} else {
+			pixels = memory[index_reg + yline] << 8 + memory[index_reg + yline + 1];
+		}
 
 		for (int xline = 0; xline < SPRITE_PX_WIDTH; xline += pixel_size) {
-			// Check if the current evaluated pixel is set to 1 (note that 0x80 >> xline scan through the byte, one bit at the time)
-			if ((pixel & (0x80 >> xline)) != 0) {
+			if ((pixels & (0x8000 >> xline)) != 0) {
 
-				// drawing a 2x2 pixel if low res is enable
+				// drawing a 2x2 pixel if low res mode is enabled instead of a 1x1
 				for (uint8_t i = 0; i < pixel_size; i++) {
 					// if the y position of the pixel is off the screen, stop drawing
 					if ((y + yline + i) >= native_height) {
@@ -72,13 +80,15 @@ void SuperChip::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 							break;
 						}
 
+						size_t current_pixel = (x + k + xline + ((y + i + yline) * native_width));
+
 						// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
-						if (px_states[(x + k + xline + ((y + i + yline) * native_width))] == 1) {
+						if (px_states[current_pixel] == 1) {
 							registers[0xF] = 1;
 						}
 
 						// Set the pixel value by using XOR
-						px_states[x + k + xline + ((y + i + yline) * native_width)] ^= 1;
+						px_states[current_pixel] ^= 1;
 					}
 				}
 			}
@@ -178,7 +188,7 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 				// Scroll left by 4 pixels; in low resolution mode, 2 pixels
 				} else if (opcode == 0xFC) {
 					scroll_screen(ScrollDirection::LEFT);
-			}
+				}
 
 			// Exit interpreter
 			} else if (opcode == 0xFD) {
@@ -199,13 +209,17 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 		case 0x8000:
 			// Shifts VX to the right by 1, then stores the least significant bit of VX prior to the shift into VF.
 			if ((opcode & 0xF) == 6) {
-				registers[0xF] = registers[VX_reg] & 0x1;
+				auto previous_VX = registers[VX_reg];
+
 				registers[VX_reg] >>= 1;
+				registers[0xF] = previous_VX & 0x1;
 
 			// Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset.
 			} else if ((opcode & 0xF) == 0xE) {
-				registers[0xF] = (registers[VX_reg] & 0x80) ? 1 : 0;
+				auto previous_VX = registers[VX_reg];
+
 				registers[VX_reg] <<= 1;
+				registers[0xF] = (previous_VX & 0x80) ? 1 : 0;
 			} else {
 				return false;
 			}
@@ -234,9 +248,8 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 				if (!key_pressed) {
 					return true;
 				}
-			}
 
-			if (sub_opcode == 0x29 && _type == Chip8Type::SUPER_1p0) {
+			} else if (sub_opcode == 0x29 && _type == Chip8Type::SUPER_1p0) {
 
 				if (registers[VX_reg] & 0xF0 == 1) {
 					registers[VX_reg] * 10 + sizeof(fontset);
@@ -247,22 +260,25 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 			// Sets I to a large hexadecimal character based on the value of VX. Characters 0-F (in hexadecimal) are represented by a 8x10 font
 			} else if (sub_opcode == 0x30 && _type == Chip8Type::SUPER_1p1) {
 				index_reg = registers[VX_reg] * 10 + sizeof(fontset);
-			}
 
-			if (sub_opcode == 0x75) {
+			} else if (sub_opcode == 0x75) {
 				for (uint8_t i = 0; i <= VX_reg; i++) {
 					user_flag_registers[i] = registers[i];
 				}
-			}
 
-			if (sub_opcode == 0x85) {
+			} else if (sub_opcode == 0x85) {
 				for (uint8_t i = 0; i <= VX_reg; i++) {
 					registers[i] = user_flag_registers[i];
 				}
+
+			} else {
+				return false;
 			}
 
-		default:
 			break;
+
+		default:
+			return false;
 	}
 
 	program_ctr += 2;

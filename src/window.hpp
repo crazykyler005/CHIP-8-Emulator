@@ -50,7 +50,9 @@ public:
 
 	void main_loop();
 	void start_game_loop();
+	void stop_game_loop();
 	void game_loop();
+	void run_single_instruction();
 	void on_key_event(const SDL_Keysym& key_info, bool is_press_event);
 	void play_sound();
 
@@ -74,13 +76,14 @@ public:
 	};
 
 	static inline uint8_t seletected_color_scheme = 0;
+	static inline bool is_run_one_instruction = false;
 
 private:
 	inline static const int MIN_WINDOW_WIDTH = 250;
 	inline static const int MIN_WINDOW_HEIGHT = 125;
 	inline static const int _native_menubar_height = 25;
 
-	std::shared_ptr<Chip8Interpreter> _chip8_ptr = std::make_shared<Chip8>(Chip8Type::ORIGINAL);
+	std::shared_ptr<Chip8Interpreter> _chip8_ptr = std::make_shared<SuperChip>(Chip8Type::SUPER_1p1);
 
 	bool running = true;
 

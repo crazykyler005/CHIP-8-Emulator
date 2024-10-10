@@ -35,13 +35,6 @@ void MenuBar::add_file_menu()
 		if (ImGui::MenuItem("Load", "Ctrl+O")) {
 			if (!fileDialog.IsOpened()) {
 				fileDialog.OpenDialog("ChooseFileDlgKey", "Choose File", ".ch8,.txt,.*");
-
-				if (_chip8_ptr->is_running) {
-					// wait for game loop thread to finish
-					std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_second)) * 2));
-
-					_chip8_ptr->reset();
-				}
 			}
 		}
 
@@ -102,8 +95,12 @@ void MenuBar::add_settings_menu()
 	if (ImGui::BeginMenu("Settings"))
 	{
 		ImGui::MenuItem("Disable sound", NULL, &_chip8_ptr->sound_disabled);
-
-		if (ImGui::MenuItem("Pause", "Ctrl-p", &_chip8_ptr->is_paused));
+		ImGui::MenuItem("Pause", "Ctrl-p", &_chip8_ptr->is_paused);
+		ImGui::MenuItem("Display wait quirk", "", &_chip8_ptr->wait_for_display_update);
+		ImGui::MenuItem("Run single instruction", "Ctrl-RIGHT", 
+			&_parent_window.is_run_one_instruction, 
+			(_chip8_ptr->is_paused && _chip8_ptr->is_running)
+		);
 
 		if (ImGui::BeginMenu("Resolution"))
 		{
@@ -118,6 +115,11 @@ void MenuBar::add_settings_menu()
 
 			ImGui::EndMenu();
 		}
+
+		if (ImGui::MenuItem("Set instructions per second", NULL, false, true))
+        {
+			display_ips_config = true;
+        }
 
 		if (ImGui::BeginMenu("Colors Schemes"))
 		{
@@ -141,11 +143,6 @@ void MenuBar::add_settings_menu()
 		    }
 		    ImGui::EndMenu();
 		}
-
-		if (ImGui::MenuItem("Set instructions per second", NULL, false, true))
-        {
-			display_ips_config = true;
-        }
 
 		ImGui::EndMenu();
 	}
@@ -185,7 +182,6 @@ void MenuBar::add_intrepreter_menu()
 			}
 
 			selected_type = Chip8Type::END;
-			printf("selected type: %d\n", _chip8_ptr->get_type());
 		}
 
 		ImGui::EndMenu();
@@ -194,13 +190,8 @@ void MenuBar::add_intrepreter_menu()
 
 void MenuBar::on_menu_file_reset()
 {
-	_chip8_ptr->is_running = false;
-
-	// wait for game loop thread to finish
-	std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_second)) * 2));
-
+	_parent_window.stop_game_loop();
 	_chip8_ptr->reset();
-	_chip8_ptr->is_running = true;
 	_parent_window.start_game_loop();
 }
 
@@ -269,15 +260,18 @@ void MenuBar::display_file_load_window()
 
             // You can now use the selected file path here
             printf("Selected file: %s\n", filePathName.c_str());
-			SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->INTERPRETER_NAME + " - " + fileDialog.GetCurrentFileName()).c_str());
 
-			_chip8_ptr->is_running = _chip8_ptr->load_program(filePathName);
-
-			if (_chip8_ptr->is_running) {
+			if (_chip8_ptr->load_program(filePathName)) {
 				_program_name = fileDialog.GetCurrentFileName();
-			}
+				SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->INTERPRETER_NAME + "Emulator - " + fileDialog.GetCurrentFileName()).c_str());
 
-			_parent_window.start_game_loop();
+				if (_chip8_ptr->is_running) {
+					_parent_window.stop_game_loop();
+					_chip8_ptr->reset();
+				}
+
+				_parent_window.start_game_loop();
+			}
         }
 
         // Close the dialog after processing
