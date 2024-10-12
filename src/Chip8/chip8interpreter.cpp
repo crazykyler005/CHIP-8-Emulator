@@ -189,13 +189,10 @@ void Chip8Interpreter::run_instruction() {
 				registers[VX_reg] = registers[VY_reg];
 			} else if (sub_opcode == 1) {
 				registers[VX_reg] |= registers[VY_reg];
-				registers[0xF] = 0;
 			} else if (sub_opcode == 2) {
 				registers[VX_reg] &= registers[VY_reg];
-				registers[0xF] = 0;
 			} else if (sub_opcode == 3) {
 				registers[VX_reg] ^= registers[VY_reg];
-				registers[0xF] = 0;
 
 			// Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not.
 			} else if (sub_opcode == 4) {

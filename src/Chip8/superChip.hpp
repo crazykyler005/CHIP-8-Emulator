@@ -38,7 +38,7 @@ private:
 
 	void scroll_screen(ScrollDirection direction, uint8_t px_shift = 4);
 	bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg);
-	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) override;
+	void update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) override;
 	bool _high_res_mode_en = false;
 
 	// TODO: Define this

@@ -16,6 +16,6 @@ protected:
 	std::vector<uint8_t> additional_data;
 
 private:
-	void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) override;
+	void update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) override;
 	void interrupt_additional_data() override { return; };
 };

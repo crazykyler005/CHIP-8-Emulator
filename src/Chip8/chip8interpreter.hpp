@@ -167,5 +167,5 @@ protected:
 
 	virtual bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) { return false; };
 	virtual void interrupt_additional_data() = 0;
-	virtual void update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) = 0;
+	virtual void update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) = 0;
 };

@@ -20,7 +20,7 @@ bool Chip8::switch_type(Chip8Type type)
 	return true;
 }
 
-void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
+void Chip8::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 	// Reset register VF
 	registers[0xF] = 0;
 	// printf("x: %d, y: %d\n", x, y);
@@ -30,7 +30,7 @@ void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 	y = y % native_height;
 
 	// if the y position of the pixel is off the screen, stop drawing
-	for (uint8_t yline = 0; yline < pix_height && (y + yline) < native_height; yline++)
+	for (uint8_t yline = 0; yline < sprite_height && (y + yline) < native_height; yline++)
 	{
 		// Fetch the pixel value from the memory starting at location I
 		uint8_t pixel = memory[index_reg + yline];
@@ -59,6 +59,8 @@ void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
 
 bool Chip8::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) {
 
+	uint8_t low_nibble = opcode & 0xF;
+
 	if (_type == Chip8Type::AMIGA_CHIP8) {
 		// No operation
 		if (opcode == 0x0000) {
@@ -76,7 +78,10 @@ bool Chip8::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& V
 		} else {
 			return false;
 		}
-	} else {
+
+	// COSMAC based variants will reset VF for opcodes 8XY1, 8XY2, 8XY3
+	} else if (low_nibble < 4 || low_nibble > 0) {
+		registers[0xF] = 0;
 		return false;
 	}
 
