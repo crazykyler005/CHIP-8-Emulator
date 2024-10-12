@@ -28,14 +28,18 @@ bool SuperChip::switch_type(Chip8Type type)
 void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 	// used to determine if a pixel is represented by x on screen pixels
 	uint8_t pixel_size = 1;
+	uint8_t sprite_width = 16;
 
 	// Reset register VF
 	registers[0xF] = 0;
 
 	// the starting x and y positions wrap
 	if (_high_res_mode_en) {
+		printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
 		x = x % native_width;
 		y = y % native_height;
+
+		sprite_width = (sprite_height == 16) ? sprite_height : 8;
 
 	// low-resolution mode (64x32), even though the application is suppose to emulate that the
 	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
@@ -63,26 +67,45 @@ void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 			}
 
 		} else {
-			pixels = memory[index_reg + (yline * 2)] << 8 + memory[index_reg + (yline * 2) + 1];
+			if (sprite_width != 16) {
+				pixels = (static_cast<uint16_t>(memory[index_reg + yline]) << 8);
+			} else {
+				pixels = (static_cast<uint16_t>(memory[index_reg + (yline * 2)]) << 8) + memory[index_reg + (yline * 2) + 1];
+			}
 		}
 
+		bool collision_in_row = false;
+
 		// if the x position of a pixel is off the screen, stop drawing
-		for (int xline = 0; xline < SPRITE_PX_WIDTH && (x + xline) < native_width; xline++) {
+		for (int xline = 0; xline < sprite_width && (x + xline) < native_width; xline++) {
 			if ((pixels & (0x8000 >> xline)) != 0) {
 
 				// if low-res then the upscaled row of pixels (16x1) gets upscaled vertically to 16x2
 				// thus causing each pixel to be repesented as 2x2 on screen pixels
 				for (uint8_t i = 0; i < pixel_size; i++) {
+
 					// if the y position of the pixel is off the screen, stop drawing
 					if ((y + yline + i) >= native_height) {
-						break;
+						// or are clipped by the bottom of the screen
+						if (_high_res_mode_en) {
+							registers[0xF]++;
+							continue;
+						} else {
+							break;
+						}
 					}
 
-					size_t current_pixel = (x + xline + ((y + i + (yline * 2)) * native_width));
+					size_t current_pixel = (x + xline + ((y + i + (yline * pixel_size)) * native_width));
 
 					// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
 					if (px_states[current_pixel] == 1) {
-						registers[0xF] = 1;
+						// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide 
+						// with another sprite or are clipped by the bottom of the screen
+						if (collision_in_row && _high_res_mode_en) {
+							registers[0xF]++;
+						} else {
+							registers[0xF] = 1;
+						}
 					}
 
 					// Set the pixel value by using XOR
@@ -99,13 +122,14 @@ void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 
 void SuperChip::scroll_screen(ScrollDirection direction, uint8_t px_shift)
 {
-	if (_high_res_mode_en) {
-		px_shift = px_shift * 2;
+	// do nothing if shift is 0
+	if (px_shift == 0) {
+		return;
 	}
 
 	switch (direction)  {
 		case ScrollDirection::DOWN:
-			for (uint8_t yline = native_height - px_shift; yline > 0; yline--) {
+			for (int16_t yline = native_height - px_shift; yline > -1; yline--) {
 				for (uint8_t xline = 0; xline < native_width; xline++)
 				{
 					px_states[xline + ((yline + px_shift) * native_width)] = px_states [xline + (yline * native_width)];
@@ -117,7 +141,7 @@ void SuperChip::scroll_screen(ScrollDirection direction, uint8_t px_shift)
 			break;
 
 		case ScrollDirection::RIGHT:
-			for (uint8_t xline = native_width - px_shift; xline > 0; xline--) {
+			for (int16_t xline = native_width - px_shift; xline > -1; xline--) {
 				for (uint8_t yline = 0; yline < native_height; yline++)
 				{
 					px_states[(xline + px_shift) + (yline * native_width)] = px_states [xline + (yline * native_width)];
@@ -180,7 +204,7 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 				// Scroll display N pixels up; in low resolution mode, N/2 pixels
 				// this instruction is not officially supported by super chip 1.1
 				if (sub_opcode == 0xB0) {
-					scroll_screen(ScrollDirection::UP, sub_opcode & 0xF);
+					scroll_screen(ScrollDirection::UP, low_byte & 0xF);
 
 				// Scroll display N pixels down; in low resolution mode, N/2 pixels
 				} else if ((sub_opcode & 0xFF0) == 0xC0) {
@@ -194,12 +218,12 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 				// Scroll left by 4 pixels; in low resolution mode, 2 pixels
 				} else if (sub_opcode == 0xFC) {
 					scroll_screen(ScrollDirection::LEFT);
-				} else {
-					return false;
 				}
 
 			// Exit interpreter
-			} else if (sub_opcode == 0xFD) {
+			}
+			
+			if (sub_opcode == 0xFD) {
 				is_running = false;
 
 			} else if (sub_opcode == 0xFE) {

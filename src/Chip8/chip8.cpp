@@ -23,6 +23,11 @@ bool Chip8::switch_type(Chip8Type type)
 void Chip8::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 	// Reset register VF
 	registers[0xF] = 0;
+
+	// don't set the draw flag
+	if (sprite_height == 0) {
+		return;
+	}
 	// printf("x: %d, y: %d\n", x, y);
 
 	// the starting x and y positions wrap
