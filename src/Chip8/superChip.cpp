@@ -53,23 +53,25 @@ void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 		uint16_t pixels = 0;
 
 		if (!_high_res_mode_en) {
-			// in lores, each sprite has a width of 8px so only a single byte from mem is grabbed per row of pixels.
-			for (uint8_t z = 0; z < (SPRITE_PX_WIDTH / 2); z++) {
-				if ((memory[index_reg + yline] & (1 << z))) {
+			// if low-res, each sprite has a width of 8px so only a single byte from mem is pulled per row of pixels.
+			for (uint8_t px = 0; px < (SPRITE_PX_WIDTH / 2); px++) {
+				if ((memory[index_reg + yline] & (1 << px))) {
 					// 8px row is upscaled to 16px
 					// ex: 10111101 -> 11001111 11110011
-					pixels = (0b11 << (z*2)) | pixels;
+					pixels = (0b11 << (px*2)) | pixels;
 				}
 			}
 
 		} else {
-			pixels = memory[index_reg + yline] << 8 + memory[index_reg + yline + 1];
+			pixels = memory[index_reg + (yline * 2)] << 8 + memory[index_reg + (yline * 2) + 1];
 		}
 
+		// if the x position of a pixel is off the screen, stop drawing
 		for (int xline = 0; xline < SPRITE_PX_WIDTH && (x + xline) < native_width; xline++) {
 			if ((pixels & (0x8000 >> xline)) != 0) {
 
-				// drawing a 2x2 pixel if low res mode is enabled instead of a 1x1
+				// if low-res then the upscaled row of pixels (16x1) gets upscaled vertically to 16x2
+				// thus causing each pixel to be repesented as 2x2 on screen pixels
 				for (uint8_t i = 0; i < pixel_size; i++) {
 					// if the y position of the pixel is off the screen, stop drawing
 					if ((y + yline + i) >= native_height) {
