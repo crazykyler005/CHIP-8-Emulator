@@ -17,5 +17,5 @@ protected:
 
 private:
 	void update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) override;
-	void interrupt_additional_data() override { return; };
+	void interpret_additional_data() override { return; };
 };

@@ -14,6 +14,7 @@ enum class Chip8Type : uint8_t {
 	// CHIP48,
 	SUPER_1p0,
 	SUPER_1p1,
+	SUPER_MODERN,
 	XO,
 	END
 };
@@ -166,6 +167,6 @@ protected:
 	std::vector<uint8_t> additional_data;
 
 	virtual bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) { return false; };
-	virtual void interrupt_additional_data() = 0;
+	virtual void interpret_additional_data() = 0;
 	virtual void update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) = 0;
 };

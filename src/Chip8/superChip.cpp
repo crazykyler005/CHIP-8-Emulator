@@ -9,7 +9,7 @@ SuperChip::SuperChip(Chip8Type type) :
 	std::copy(std::begin(super_fontset), std::end(super_fontset), std::begin(memory) + sizeof(fontset));
 
 	opcodes_per_second = 1800;
-	increment_i = false;
+	increment_i = (_type != Chip8Type::SUPER_1p1);
 }
 
 bool SuperChip::switch_type(Chip8Type type)
@@ -97,8 +97,8 @@ void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 
 void SuperChip::scroll_screen(ScrollDirection direction, uint8_t px_shift)
 {
-	if (!_high_res_mode_en) {
-		px_shift = px_shift / 2;
+	if (_high_res_mode_en) {
+		px_shift = px_shift * 2;
 	}
 
 	switch (direction)  {
@@ -111,7 +111,7 @@ void SuperChip::scroll_screen(ScrollDirection direction, uint8_t px_shift)
 			}
 
 			// clear everything above moved pixels
-			memset(memory, false, (native_width * px_shift));
+			memset(px_states.data(), 0, (native_width * px_shift));
 			break;
 
 		case ScrollDirection::RIGHT:
@@ -167,7 +167,8 @@ void SuperChip::scroll_screen(ScrollDirection direction, uint8_t px_shift)
 
 bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg)
 {
-	uint8_t sub_opcode = (opcode & 0xFF);
+	uint16_t sub_opcode = (opcode & 0xFFF);
+	uint8_t low_byte = (opcode & 0xFF);
 
 	switch (opcode & 0xF000)
 	{
@@ -176,32 +177,33 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 			if (_type == Chip8Type::SUPER_1p1) {
 				// Scroll display N pixels up; in low resolution mode, N/2 pixels
 				// this instruction is not officially supported by super chip 1.1
-				if ((opcode & 0xF0) == 0x00B0) {
-					scroll_screen(ScrollDirection::UP, opcode & 0xF);
+				if (sub_opcode == 0xB0) {
+					scroll_screen(ScrollDirection::UP, sub_opcode & 0xF);
 
 				// Scroll display N pixels down; in low resolution mode, N/2 pixels
-				} else if ((opcode & 0xF0) == 0x00C0) {
-					scroll_screen(ScrollDirection::DOWN, opcode & 0xF);
+				} else if ((sub_opcode & 0xFF0) == 0xC0) {
+					// in the legacy superchip (v1.0-v1.1), 00C0 is an invalid instruction and would crash the application.
+					scroll_screen(ScrollDirection::DOWN, low_byte & 0xF);
 
 				// Scroll right by 4 pixels; in low resolution mode, 2 pixels
-				} else if (opcode == 0xFB) {
+				} else if (sub_opcode == 0xFB) {
 					scroll_screen(ScrollDirection::RIGHT);
 
 				// Scroll left by 4 pixels; in low resolution mode, 2 pixels
-				} else if (opcode == 0xFC) {
+				} else if (sub_opcode == 0xFC) {
 					scroll_screen(ScrollDirection::LEFT);
 				} else {
 					return false;
 				}
 
 			// Exit interpreter
-			} else if (opcode == 0xFD) {
+			} else if (sub_opcode == 0xFD) {
 				is_running = false;
 
-			} else if (opcode == 0xFE) {
+			} else if (sub_opcode == 0xFE) {
 				_high_res_mode_en = false;
 
-			} else if (opcode == 0xFF) {
+			} else if (sub_opcode == 0xFF) {
 				_high_res_mode_en = true;
 				
 			} else {
@@ -212,14 +214,14 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 
 		case 0x8000:
 			// Shifts VX to the right by 1, then stores the least significant bit of VX prior to the shift into VF.
-			if ((opcode & 0xF) == 6) {
+			if ((low_byte & 0xF) == 6) {
 				auto previous_VX = registers[VX_reg];
 
 				registers[VX_reg] >>= 1;
 				registers[0xF] = previous_VX & 0x1;
 
 			// Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset.
-			} else if ((opcode & 0xF) == 0xE) {
+			} else if ((low_byte & 0xF) == 0xE) {
 				auto previous_VX = registers[VX_reg];
 
 				registers[VX_reg] <<= 1;
@@ -231,13 +233,13 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 			break;
 
 		case 0xB000: // PC = VX + NNN
-			// CHIP-48 and SUPER-CHIP version (possible bug)
-			program_ctr = registers[VX_reg] + (opcode & 0xFFF);
+			// CHIP-48 and legacy SUPER-CHIP version (possible bug)
+			program_ctr = registers[VX_reg] + sub_opcode;
 			return true;
 
 		case 0xD000:
 
-			if (sub_opcode & 0x0F == 0) {
+			if (low_byte & 0x0F == 0) {
 				update_gfx(registers[VX_reg], registers[VY_reg], (_high_res_mode_en ? 16 : 8));
 			} else {
 				return false;
@@ -248,7 +250,7 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 		case 0xF000:
 
 			// A key press is awaited, and then stored in VX (blocking operation, all instruction halted until next key event)
-			if (sub_opcode == 0x0A) {
+			if (sub_opcode == 0x00A) {
 				bool key_pressed = false;
 
 				for (uint8_t i = 0; i < keys.size(); i++) {
@@ -263,7 +265,7 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 					return true;
 				}
 
-			} else if (sub_opcode == 0x29 && _type == Chip8Type::SUPER_1p0) {
+			} else if (low_byte == 0x29 && _type == Chip8Type::SUPER_1p0) {
 
 				if (registers[VX_reg] & 0xF0 == 1) {
 					registers[VX_reg] * 10 + sizeof(fontset);
@@ -272,15 +274,15 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 				index_reg = registers[VX_reg] * 5;
 
 			// Sets I to a large hexadecimal character based on the value of VX. Characters 0-F (in hexadecimal) are represented by a 8x10 font
-			} else if (sub_opcode == 0x30 && _type == Chip8Type::SUPER_1p1) {
+			} else if (low_byte == 0x30 && _type == Chip8Type::SUPER_1p1) {
 				index_reg = registers[VX_reg] * 10 + sizeof(fontset);
 
-			} else if (sub_opcode == 0x75) {
+			} else if (low_byte == 0x75) {
 				for (uint8_t i = 0; i <= VX_reg; i++) {
 					user_flag_registers[i] = registers[i];
 				}
 
-			} else if (sub_opcode == 0x85) {
+			} else if (low_byte == 0x85) {
 				for (uint8_t i = 0; i <= VX_reg; i++) {
 					registers[i] = user_flag_registers[i];
 				}
@@ -300,7 +302,7 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 }
 
 // TODO: Define this
-void SuperChip::interrupt_additional_data()
+void SuperChip::interpret_additional_data()
 {
 	return;
 }

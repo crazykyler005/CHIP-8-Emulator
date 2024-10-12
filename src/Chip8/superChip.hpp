@@ -42,7 +42,7 @@ private:
 	bool _high_res_mode_en = false;
 
 	// TODO: Define this
-	void interrupt_additional_data() override;
+	void interpret_additional_data() override;
 
 	// TODO: save to file instead
 	uint8_t user_flag_registers[8];

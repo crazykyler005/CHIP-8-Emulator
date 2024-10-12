@@ -139,9 +139,8 @@ void Chip8Interpreter::run_instruction() {
 
 		case 0x2000: // 2NNN
 			// call subroutine at 0NNN
-			// stack[stack_ptr] = program_ctr;
 			stack.push_back(program_ctr);
-			program_ctr =  opcode & 0x0FFF;
+			program_ctr = opcode & 0x0FFF;
 			return;
 
 		case 0x3000: // 3XNN
