@@ -44,6 +44,8 @@ private:
 	// TODO: Define this
 	void interpret_additional_data() override;
 
+	void lores_draw_gfx(uint8_t x, uint8_t y, uint8_t sprite_height);
+
 	// TODO: save to file instead
 	uint8_t user_flag_registers[8];
 };

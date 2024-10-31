@@ -27,90 +27,131 @@ bool SuperChip::switch_type(Chip8Type type)
 
 void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 	// used to determine if a pixel is represented by x on screen pixels
-	uint8_t pixel_size = 1;
 	uint8_t sprite_width = 16;
 
 	// Reset register VF
 	registers[0xF] = 0;
 
 	// the starting x and y positions wrap
-	if (_high_res_mode_en) {
-		printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
-		x = x % native_width;
-		y = y % native_height;
+	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
+	x = x % native_width;
+	y = y % native_height;
 
-		sprite_width = (sprite_height == 16) ? sprite_height : 8;
-
-	// low-resolution mode (64x32), even though the application is suppose to emulate that the
-	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
-	// each pixel is represented by 2x2 on-screen pixels.
-	} else {
-		x = (x * 2) % native_width;
-		y = (y * 2) % native_height;
-
-		pixel_size = 2;
-	}
+	sprite_width = (sprite_height == 16) ? sprite_height : 8;
 
 	for (uint8_t yline = 0; yline < sprite_height; yline++)
 	{
 		// Fetch the pixels from the memory starting at location I
 		uint16_t pixels = 0;
 
-		if (!_high_res_mode_en) {
-			// if low-res, each sprite has a width of 8px so only a single byte from mem is pulled per row of pixels.
-			for (uint8_t px = 0; px < (SPRITE_PX_WIDTH / 2); px++) {
-				if ((memory[index_reg + yline] & (1 << px))) {
-					// 8px row is upscaled to 16px
-					// ex: 10111101 -> 11001111 11110011
-					pixels = (0b11 << (px*2)) | pixels;
-				}
-			}
-
+		if (sprite_width != 16) {
+			pixels = (static_cast<uint16_t>(memory[index_reg + yline]) << 8);
 		} else {
-			if (sprite_width != 16) {
-				pixels = (static_cast<uint16_t>(memory[index_reg + yline]) << 8);
-			} else {
-				pixels = (static_cast<uint16_t>(memory[index_reg + (yline * 2)]) << 8) + memory[index_reg + (yline * 2) + 1];
-			}
+			pixels = (static_cast<uint16_t>(memory[index_reg + (yline * 2)]) << 8) + memory[index_reg + (yline * 2) + 1];
 		}
 
 		bool collision_in_row = false;
 
 		// if the x position of a pixel is off the screen, stop drawing
-		for (int xline = 0; xline < sprite_width && (x + xline) < native_width; xline++) {
+		for (uint8_t xline = 0; xline < sprite_width && (x + xline) < native_width; xline++) {
 			if ((pixels & (0x8000 >> xline)) != 0) {
 
-				// if low-res then the upscaled row of pixels (16x1) gets upscaled vertically to 16x2
-				// thus causing each pixel to be repesented as 2x2 on screen pixels
-				for (uint8_t i = 0; i < pixel_size; i++) {
-
-					// if the y position of the pixel is off the screen, stop drawing
-					if ((y + yline + i) >= native_height) {
-						// or are clipped by the bottom of the screen
-						if (_high_res_mode_en) {
-							registers[0xF]++;
-							continue;
-						} else {
-							break;
-						}
-					}
-
-					size_t current_pixel = (x + xline + ((y + i + (yline * pixel_size)) * native_width));
-
-					// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
-					if (px_states[current_pixel] == 1) {
-						// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide 
-						// with another sprite or are clipped by the bottom of the screen
-						if (collision_in_row && _high_res_mode_en) {
-							registers[0xF]++;
-						} else {
-							registers[0xF] = 1;
-						}
-					}
-
-					// Set the pixel value by using XOR
-					px_states[current_pixel] ^= 1;
+				// if the y position of the pixel is off the screen, stop drawing
+				if ((y + yline) >= native_height) {
+					// or are clipped by the bottom of the screen
+					registers[0xF]++;
+					continue;
 				}
+
+				size_t current_pixel = (x + xline + ((y + yline) * native_width));
+
+				// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
+				if (px_states[current_pixel] == 1) {
+					// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide 
+					// with another sprite or are clipped by the bottom of the screen
+					if (collision_in_row) {
+						registers[0xF]++;
+					}
+				}
+
+				px_states[current_pixel] ^= 1;
+			}
+		}
+	}
+
+	draw_flag = true;
+	
+	return;
+}
+
+void SuperChip::lores_draw_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
+	// low-resolution mode (64x32), even though the application is suppose to emulate that the
+	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
+	// each pixel is represented by 2x2 on-screen pixels.
+
+	// used to determine if a pixel is represented by x on screen pixels
+	uint8_t pixel_size = 2;
+	uint8_t sprite_width = 8;
+	uint8_t draw_width = 32;
+
+	sprite_height *= 2;
+
+	// Reset register VF
+	registers[0xF] = 0;
+
+	printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
+	x = (x * 2) % native_width;
+	y = (y * 2) % native_height;
+
+	// drawing starts at the nearest 16 pixel border
+	uint8_t starting_x = x & 0xF0;
+
+	for (uint8_t yline = 0; yline < sprite_height; yline+=pixel_size)
+	{
+		// in lores a row of pixels are always drawn in 32x2 pixel strips
+		uint32_t pixels = 0;
+
+		// if low-res, each sprite has a width of 8px so only a single byte from mem is pulled per row of pixels.
+		for (uint8_t px = 0; px < sprite_width; px++) {
+			// Fetch the pixels from the memory starting at location I
+			if ((memory[index_reg + (yline / 2)] & (1 << px))) {
+				pixels = (0b11 << (px * 2)) | pixels;
+			}
+		}
+
+		pixels <<= (16 - (x & 0xF));
+
+		// if the x position of a pixel is off screen, stop drawing
+		for (uint xline = 0; xline < draw_width && (starting_x + xline) < native_width; xline++) {
+			uint8_t current_y_pos = y + yline;
+
+			// if the y position of the pixel is off screen, stop drawing
+			// or are clipped by the bottom of the screen
+			if (current_y_pos >= native_height) {
+				break;
+			}
+
+			size_t current_pixel = (starting_x + xline + (current_y_pos * native_width));
+
+			if ((pixels & (0x80000000 >> xline)) != 0) {
+				// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
+				if (px_states[current_pixel] == 1) {
+					// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide 
+					// with another sprite or are clipped by the bottom of the screen
+					registers[0xF] = 1;
+				}
+
+				px_states[current_pixel] ^= 1;
+			}
+
+			// if low-res then the upscaled row of pixels (16x1) gets upscaled vertically to 16x2
+			// thus causing each pixel to be repesented as 2x2 on screen pixels
+
+			// NOTE: even though each pixel of a sprite is represented as 2x2 on screen pixels, 
+			// that doesn't mean the state of each is going to be the same. The superchip XORs the
+			// the top pixels with the current on-screen pixels and then copies them down.
+			if ((current_y_pos + 1) < native_height) {
+				px_states[current_pixel + native_width] = px_states[current_pixel];
 			}
 		}
 	}
@@ -266,9 +307,18 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 		case 0xD000:
 
 			if (low_byte & 0x0F == 0) {
-				update_gfx(registers[VX_reg], registers[VY_reg], (_high_res_mode_en ? 16 : 8));
+				if (!_high_res_mode_en) {
+					lores_draw_gfx(registers[VX_reg], registers[VY_reg], (_high_res_mode_en ? 16 : 8));
+				} else {
+					update_gfx(registers[VX_reg], registers[VY_reg], (_high_res_mode_en ? 16 : 8));
+				}
 			} else {
-				return false;
+				if (!_high_res_mode_en) {
+					lores_draw_gfx(registers[VX_reg], registers[VY_reg], static_cast<uint8_t>(opcode & 0xF));
+				} else {
+					update_gfx(registers[VX_reg], registers[VY_reg], static_cast<uint8_t>(opcode & 0xF));
+				}
+				//return false;
 			}
 
 			break;

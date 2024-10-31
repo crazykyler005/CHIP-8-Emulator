@@ -116,6 +116,7 @@ void Chip8Interpreter::run_instruction() {
 		case 0x0000:
 			if (opcode == 0x00E0) {
 				// clear screen
+				printf("clear screen\n");
 				memset(px_states.data(), 0, px_states.size());
 				draw_flag = true;
 
