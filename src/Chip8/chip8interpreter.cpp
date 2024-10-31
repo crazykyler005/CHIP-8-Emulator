@@ -11,7 +11,7 @@
 #include "chip8interpreter.hpp"
 
 Chip8Interpreter::Chip8Interpreter(std::string name, uint8_t width, uint8_t height, uint8_t sprite_width) :
-	INTERPRETER_NAME(name), native_width(width), native_height(height), SPRITE_PX_WIDTH(sprite_width)
+	INTERPRETER_NAME(name), native_width(width), native_height(height)
 {
 	// loading fontset into the designated position in memory (0-80)
 	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));

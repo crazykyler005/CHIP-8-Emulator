@@ -25,26 +25,30 @@ bool SuperChip::switch_type(Chip8Type type)
 	return true;
 }
 
-void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
-	// used to determine if a pixel is represented by x on screen pixels
-	uint8_t sprite_width = 16;
-
+void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
+{
 	// Reset register VF
 	registers[0xF] = 0;
+
+	if (!_high_res_mode_en) {
+		lores_draw_gfx(x, y, sprite_height);
+		return;
+	}
+
+	// if a sprites height is 16px then it's width is also 16px otherwise it's 8px
+	uint8_t draw_width = (sprite_height == 16) ? sprite_height : 8;
 
 	// the starting x and y positions wrap
 	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
 	x = x % native_width;
 	y = y % native_height;
 
-	sprite_width = (sprite_height == 16) ? sprite_height : 8;
-
 	for (uint8_t yline = 0; yline < sprite_height; yline++)
 	{
-		// Fetch the pixels from the memory starting at location I
 		uint16_t pixels = 0;
 
-		if (sprite_width != 16) {
+		// Fetch the pixels from the memory starting at location I
+		if (draw_width != 16) {
 			pixels = (static_cast<uint16_t>(memory[index_reg + yline]) << 8);
 		} else {
 			pixels = (static_cast<uint16_t>(memory[index_reg + (yline * 2)]) << 8) + memory[index_reg + (yline * 2) + 1];
@@ -52,26 +56,26 @@ void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 
 		bool collision_in_row = false;
 
-		// if the x position of a pixel is off the screen, stop drawing
-		for (uint8_t xline = 0; xline < sprite_width && (x + xline) < native_width; xline++) {
+		for (uint8_t xline = 0; xline < draw_width; xline++) {
 			if ((pixels & (0x8000 >> xline)) != 0) {
 
-				// if the y position of the pixel is off the screen, stop drawing
-				if ((y + yline) >= native_height) {
+				// if the x or y position of the pixel is off the screen, stop drawing
+				if (((y + yline) >= native_height) || ((x + xline) >= native_width)) {
 					// or are clipped by the bottom of the screen
 					registers[0xF]++;
-					continue;
+					break;
 				}
 
 				size_t current_pixel = (x + xline + ((y + yline) * native_width));
 
-				// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
-				if (px_states[current_pixel] == 1) {
-					// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide 
-					// with another sprite or are clipped by the bottom of the screen
-					if (collision_in_row) {
+				// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide 
+				// with another sprite or are clipped by the bottom of the screen
+				if (px_states[current_pixel] == 1 && !collision_in_row) {
+					if (!collision_in_row) {
 						registers[0xF]++;
 					}
+
+					collision_in_row = true;
 				}
 
 				px_states[current_pixel] ^= 1;
@@ -84,7 +88,7 @@ void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 	return;
 }
 
-void SuperChip::lores_draw_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
+void SuperChip::lores_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height) {
 	// low-resolution mode (64x32), even though the application is suppose to emulate that the
 	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
 	// each pixel is represented by 2x2 on-screen pixels.
@@ -94,19 +98,14 @@ void SuperChip::lores_draw_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 	uint8_t sprite_width = 8;
 	uint8_t draw_width = 32;
 
-	sprite_height *= 2;
-
-	// Reset register VF
-	registers[0xF] = 0;
-
-	printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
+	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
 	x = (x * 2) % native_width;
 	y = (y * 2) % native_height;
 
-	// drawing starts at the nearest 16 pixel border
+	// drawing starts at the nearest 16th pixel border
 	uint8_t starting_x = x & 0xF0;
 
-	for (uint8_t yline = 0; yline < sprite_height; yline+=pixel_size)
+	for (uint8_t yline = 0; yline < (sprite_height * 2); yline += pixel_size)
 	{
 		// in lores a row of pixels are always drawn in 32x2 pixel strips
 		uint32_t pixels = 0;
@@ -115,11 +114,13 @@ void SuperChip::lores_draw_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 		for (uint8_t px = 0; px < sprite_width; px++) {
 			// Fetch the pixels from the memory starting at location I
 			if ((memory[index_reg + (yline / 2)] & (1 << px))) {
+				// 8px row is upscaled to 16px
+				// ex: 10111101 -> 11001111 11110011
 				pixels = (0b11 << (px * 2)) | pixels;
 			}
 		}
 
-		pixels <<= (16 - (x & 0xF));
+		pixels <<= ((draw_width / 2) - (x & 0xF));
 
 		// if the x position of a pixel is off screen, stop drawing
 		for (uint xline = 0; xline < draw_width && (starting_x + xline) < native_width; xline++) {
@@ -136,8 +137,6 @@ void SuperChip::lores_draw_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 			if ((pixels & (0x80000000 >> xline)) != 0) {
 				// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
 				if (px_states[current_pixel] == 1) {
-					// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide 
-					// with another sprite or are clipped by the bottom of the screen
 					registers[0xF] = 1;
 				}
 
@@ -307,18 +306,9 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 		case 0xD000:
 
 			if (low_byte & 0x0F == 0) {
-				if (!_high_res_mode_en) {
-					lores_draw_gfx(registers[VX_reg], registers[VY_reg], (_high_res_mode_en ? 16 : 8));
-				} else {
-					update_gfx(registers[VX_reg], registers[VY_reg], (_high_res_mode_en ? 16 : 8));
-				}
+				update_gfx(registers[VX_reg], registers[VY_reg], (_high_res_mode_en ? 16 : 8));
 			} else {
-				if (!_high_res_mode_en) {
-					lores_draw_gfx(registers[VX_reg], registers[VY_reg], static_cast<uint8_t>(opcode & 0xF));
-				} else {
-					update_gfx(registers[VX_reg], registers[VY_reg], static_cast<uint8_t>(opcode & 0xF));
-				}
-				//return false;
+				update_gfx(registers[VX_reg], registers[VY_reg], static_cast<uint8_t>(opcode & 0xF));
 			}
 
 			break;

@@ -100,7 +100,6 @@ protected:
 	std::vector<uint16_t> stack;
 
 	Chip8Type _type;
-	const uint8_t SPRITE_PX_WIDTH;
 
 	uint8_t memory[MEMORY_SIZE] = {};
 	uint8_t registers[16] = {};

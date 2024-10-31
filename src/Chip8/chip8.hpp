@@ -16,6 +16,8 @@ protected:
 	std::vector<uint8_t> additional_data;
 
 private:
+	inline static const uint8_t SPRITE_PX_WIDTH = 8;
+
 	void update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) override;
 	void interpret_additional_data() override { return; };
 };
