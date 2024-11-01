@@ -1,3 +1,6 @@
+#pragma once
+
+#include <string>
 #include <ctime>
 
 time_t get_microseconds_in_second();

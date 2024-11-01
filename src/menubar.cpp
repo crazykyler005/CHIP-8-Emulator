@@ -7,7 +7,7 @@
 
 static bool display_ips_config = false;
 
-MenuBar::MenuBar(Chip8* chip8_pointer, Window& parent_window)
+MenuBar::MenuBar(std::shared_ptr<Chip8Interpreter> chip8_pointer, Window& parent_window)
 	: _chip8_ptr(chip8_pointer), _parent_window(parent_window)
 {
 }
@@ -19,6 +19,7 @@ void MenuBar::generate()
 		add_file_menu();
 		add_states_menu();
 		add_settings_menu();
+		add_intrepreter_menu();
 
 		ImGui::EndMainMenuBar();
 	}
@@ -34,13 +35,6 @@ void MenuBar::add_file_menu()
 		if (ImGui::MenuItem("Load", "Ctrl+O")) {
 			if (!fileDialog.IsOpened()) {
 				fileDialog.OpenDialog("ChooseFileDlgKey", "Choose File", ".ch8,.txt,.*");
-
-				if (_chip8_ptr->is_running) {
-					// wait for game loop thread to finish
-					std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_second)) * 2));
-
-					_chip8_ptr->reset();
-				}
 			}
 		}
 
@@ -49,21 +43,6 @@ void MenuBar::add_file_menu()
 		}
 
 		ImGui::Separator();
-		// if (ImGui::BeginMenu("Options"))
-		// {
-		//     static bool enabled = true;
-		//     ImGui::MenuItem("Enabled", "", &enabled);
-		//     ImGui::BeginChild("child", ImVec2(0, 60), ImGuiChildFlags_Borders);
-		//     for (int i = 0; i < 10; i++)
-		//         ImGui::Text("Scrolling Text %d", i);
-		//     ImGui::EndChild();
-		//     static float f = 0.5f;
-		//     static int n = 0;
-		//     ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
-		//     ImGui::InputFloat("Input", &f, 0.1f);
-		//     ImGui::Combo("Combo", &n, "Yes\0No\0Maybe\0\0");
-		//     ImGui::EndMenu();
-		// }
 
 		if (ImGui::MenuItem("Quit", "Alt+F4")) {
 			_parent_window.close();
@@ -116,8 +95,12 @@ void MenuBar::add_settings_menu()
 	if (ImGui::BeginMenu("Settings"))
 	{
 		ImGui::MenuItem("Disable sound", NULL, &_chip8_ptr->sound_disabled);
-
-		if (ImGui::MenuItem("Pause", "ctrl p", &_chip8_ptr->is_paused));
+		ImGui::MenuItem("Pause", "Ctrl-p", &_chip8_ptr->is_paused);
+		ImGui::MenuItem("Display wait quirk", "", &_chip8_ptr->wait_for_display_update);
+		ImGui::MenuItem("Run single instruction", "Ctrl-RIGHT", 
+			&_parent_window.is_run_one_instruction, 
+			(_chip8_ptr->is_paused && _chip8_ptr->is_running)
+		);
 
 		if (ImGui::BeginMenu("Resolution"))
 		{
@@ -132,6 +115,11 @@ void MenuBar::add_settings_menu()
 
 			ImGui::EndMenu();
 		}
+
+		if (ImGui::MenuItem("Set instructions per second", NULL, false, true))
+        {
+			display_ips_config = true;
+        }
 
 		if (ImGui::BeginMenu("Colors Schemes"))
 		{
@@ -156,25 +144,61 @@ void MenuBar::add_settings_menu()
 		    ImGui::EndMenu();
 		}
 
-		if (ImGui::MenuItem("Set instructions per second", NULL, false, true))
-        {
-			display_ips_config = true;
-        }
+		ImGui::EndMenu();
+	}
+}
 
-		ImGui::MenuItem("Enable 0xFX1E overflow", NULL, &_chip8_ptr->_0xFX1E_overflow_enabled);
+void MenuBar::add_intrepreter_menu()
+{
+	if (ImGui::BeginMenu("Intrepreters"))
+	{
+		static auto selected_type = Chip8Type::END;
+		auto& type = _chip8_ptr->get_type();
+
+		if (ImGui::MenuItem("Chip 8", "", false, false)) {}
+
+		if (ImGui::MenuItem("COSMAC VIP", "Original", type == Chip8Type::ORIGINAL)) {
+			selected_type = Chip8Type::ORIGINAL;
+		}
+
+		if (ImGui::MenuItem("COMMODORE AMIGA", "", type == Chip8Type::AMIGA_CHIP8)) {
+			selected_type = Chip8Type::AMIGA_CHIP8;
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::MenuItem("Super Chip", "", false, false)) {}
+
+		if (ImGui::MenuItem("VERSION 1.0", "", type == Chip8Type::SUPER_1p0)) {
+			selected_type = Chip8Type::SUPER_1p0;
+		}
+		if (ImGui::MenuItem("VERSION 1.1", "Legacy", type == Chip8Type::SUPER_1p1)) {
+			selected_type = Chip8Type::SUPER_1p1;
+		}
+		if (ImGui::MenuItem("MODERN", "", type == Chip8Type::SUPER_MODERN)) {
+			selected_type = Chip8Type::SUPER_MODERN;
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::MenuItem("XO Chip", "", false, false)) {}
+
+		if (selected_type != Chip8Type::END) {
+			if (!_chip8_ptr->switch_type(selected_type)) {
+				_parent_window.switch_interpreter(selected_type);
+			}
+
+			selected_type = Chip8Type::END;
+		}
+
 		ImGui::EndMenu();
 	}
 }
 
 void MenuBar::on_menu_file_reset()
 {
-	_chip8_ptr->is_running = false;
-
-	// wait for game loop thread to finish
-	std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_second)) * 2));
-
+	_parent_window.stop_game_loop();
 	_chip8_ptr->reset();
-	_chip8_ptr->is_running = true;
 	_parent_window.start_game_loop();
 }
 
@@ -191,7 +215,7 @@ void MenuBar::on_menu_state_save(int i)
 
 	// need to pause the program here, generate a save state, then resume the application
 	auto utc_timestamp = utc_time_in_seconds();
-	_chip8_ptr->save_program_state(i, utc_timestamp);
+	_chip8_ptr->save_program_state(_program_name, i, utc_timestamp);
 }
 
 void MenuBar::on_menu_state_load(int i)
@@ -203,7 +227,7 @@ void MenuBar::on_menu_state_load(int i)
 void MenuBar::on_menu_update_resolution(int i)
 {
 	float menu_bar_height = ImGui::GetFrameHeight();
-	SDL_SetWindowSize(_parent_window.window_ptr, Chip8::native_width * i, menu_bar_height + (Chip8::native_height * i));
+	SDL_SetWindowSize(_parent_window.window_ptr, _chip8_ptr->native_width * i, menu_bar_height + (_chip8_ptr->native_height * i));
 
 	selected_resolution_multiplier = i;
 }
@@ -243,15 +267,18 @@ void MenuBar::display_file_load_window()
 
             // You can now use the selected file path here
             printf("Selected file: %s\n", filePathName.c_str());
-			SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->DEFAULT_TITLE + " - " + fileDialog.GetCurrentFileName()).c_str());
 
-			_chip8_ptr->is_running = _chip8_ptr->load_program(filePathName);
-
-			if (_chip8_ptr->is_running) {
+			if (_chip8_ptr->load_program(filePathName)) {
 				_program_name = fileDialog.GetCurrentFileName();
-			}
+				SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->INTERPRETER_NAME + "Emulator - " + fileDialog.GetCurrentFileName()).c_str());
 
-			_parent_window.start_game_loop();
+				if (_chip8_ptr->is_running) {
+					_parent_window.stop_game_loop();
+					_chip8_ptr->reset();
+				}
+
+				_parent_window.start_game_loop();
+			}
         }
 
         // Close the dialog after processing

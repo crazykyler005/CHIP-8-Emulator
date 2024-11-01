@@ -9,16 +9,19 @@
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_sdlrenderer2.h>
+#include <memory>
 #include "ImGuiFileDialog.h"
 
 #include "chip8.hpp"
+#include "superChip.hpp"
+#include "superChipModern.hpp"
 
 class Window;
 
 class MenuBar {
 
 public:
-	MenuBar(Chip8* chip8_pointer, Window& _parent_window);
+	MenuBar(std::shared_ptr<Chip8Interpreter> chip8_pointer, Window& _parent_window);
 
 	void generate();
 	int get_height() { return _height; };
@@ -28,11 +31,14 @@ public:
 
 	uint8_t selected_resolution_multiplier = 8;
 
+	void set_chip8_pointer(std::shared_ptr<Chip8Interpreter> chip8_pointer) { _chip8_ptr = chip8_pointer; };
+
 private:
 
 	void add_file_menu();
 	void add_states_menu();
 	void add_settings_menu();
+	void add_intrepreter_menu();
 
 	void on_menu_file_reset();
 	void on_menu_file_quit();
@@ -50,7 +56,7 @@ private:
 	inline static const int _height = 25;
 
 	Window& _parent_window;
-	Chip8* _chip8_ptr;
+	std::shared_ptr<Chip8Interpreter> _chip8_ptr;
 	
 	std::vector<std::string> stateTimestamps = { 5, "" };
 };

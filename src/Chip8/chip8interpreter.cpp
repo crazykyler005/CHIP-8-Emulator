@@ -1,7 +1,5 @@
-
-#include "chip8.hpp"
-#include "helper_functions.hpp"
-#include "byteorder.h"
+#include "../helper_functions.hpp"
+#include "../byteorder.h"
 
 #include <random>
 #include <stdlib.h>
@@ -10,69 +8,39 @@
 #include <filesystem>
 #include <cstring>
 
-Chip8::Chip8() {
+#include "chip8interpreter.hpp"
+
+Chip8Interpreter::Chip8Interpreter(std::string name, uint8_t width, uint8_t height, uint8_t sprite_width) :
+	INTERPRETER_NAME(name), native_width(width), native_height(height)
+{
 	// loading fontset into the designated position in memory (0-80)
 	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));
-}
 
-void Chip8::update_gfx(uint8_t& x, uint8_t& y, uint8_t pix_height) {
-	// Reset register VF
-	registers[0xF] = 0;
-	// printf("x: %d, y: %d\n", x, y);
-
-
-	for (uint8_t yline = 0; yline < pix_height; yline++)
-	{
-		// // if the y position of the pixel is off the screen, stop drawing
-		// if (y + yline > native_height) {
-		// 	break;
-		// }
-
-		// Fetch the pixel value from the memory starting at location I
-		uint8_t _8px_sprite = memory[index_reg + yline];
-
-		// Loop over 8 bits of one row
-		for (int xline = 0; xline < SPRITE_PX_WIDTH; xline++) {
-			// // if the x position of the pixel is off the screen, stop drawing
-			// if (x + xline > native_width) {
-			// 	break;
-			// }
-
-			// Check if the current evaluated pixel is set to 1 (note that 0x80 >> xline scan through the byte, one bit at the time)
-			if ((_8px_sprite & (0x80 >> xline)) != 0) {
-
-				// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
-				if (px_states[(x + xline + ((y + yline) * native_width))] == 1) {
-					registers[0xF] = 1;
-				}
-
-				// Set the pixel value by using XOR
-				px_states[x + xline + ((y + yline) * native_width)] ^= 1;
-			}
-		}
+	for (uint8_t i = 0; i < key_map.size(); i++) {
+		keys[i].map = key_map[i];
 	}
 
-	draw_flag = true;
-	
-	return;
+	px_states.resize(native_width * native_height);
 }
 
-void Chip8::reset() {
+void Chip8Interpreter::reset() {
 	program_ctr = PROGRAM_START_ADDR;
 	index_reg = 0;
 
 	// clear stack
 	stack.clear();
 
+	std::copy(std::begin(application_bytes), std::end(application_bytes), std::begin(memory) + PROGRAM_START_ADDR);
+
 	// clear all registers
 	memset(registers, 0, sizeof(registers));
 
 	// Clear display
-	memset(px_states, false, sizeof(px_states));
+	memset(px_states.data(), 0, px_states.size());
 	draw_flag = true;
 
 	// Clear key_presses
-	memset(keys_pressed, false, sizeof(keys_pressed));
+	cancel_key_wait_event();
 
 	delay_timer = 0;
 	sound_timer = 0;
@@ -82,25 +50,48 @@ void Chip8::reset() {
 	lowest_mem_addr_updated = 0xFFF;
 }
 
-bool Chip8::load_program(std::string file_path) {
-	reset();
 
+void Chip8Interpreter::cancel_key_wait_event() {
+	wait_for_key_release = false;
+
+	for (auto& key : keys) {
+		key.is_pressed = false;
+		key.released_on_wait_event = false;
+	}
+}
+
+bool Chip8Interpreter::load_program(std::string file_path)
+{
 	auto file = fopen((file_path).c_str(), "r");
 
 	if (file == NULL) {
 		return false;
 	}
 	
-	memset(memory + sizeof(fontset), 0, sizeof(memory) - sizeof(fontset));
+	memset(application_bytes, 0, sizeof(application_bytes));
+	memset(memory + PROGRAM_START_ADDR, 0, sizeof(memory) - PROGRAM_START_ADDR);
 
 	for (uint16_t addr = PROGRAM_START_ADDR; addr < sizeof(memory) && !feof(file); addr++) {
-		memory[addr] = fgetc(file);
+		auto byte = fgetc(file);
+
+		application_bytes[addr - PROGRAM_START_ADDR] = byte;
+		memory[addr] = byte;
 	}
 
 	return true;
 }
 
-void Chip8::run_instruction() {
+
+void Chip8Interpreter::process_key_event(uint8_t& key_index, bool is_pressed)
+{
+	keys[key_index].is_pressed = is_pressed;
+
+	if (wait_for_key_release && !is_pressed) {
+		keys[key_index].released_on_wait_event = true;
+	}
+}
+
+void Chip8Interpreter::run_instruction() {
 
 	uint16_t opcode = (static_cast<uint16_t>(memory[program_ctr]) << 8) + memory[program_ctr + 1];
 
@@ -109,6 +100,15 @@ void Chip8::run_instruction() {
 
 	// printf("opcode: %x, i: %d, pc: %d, reg[vx]: %d, VX_reg: %d\n", opcode, index_reg, program_ctr, registers[VX_reg], VX_reg);
 
+	// DXYN is the slowest command to run so to emulate this we wait until the next frame the run the next instruction
+	if (wait_for_display_update && draw_flag) {
+		return;
+	}
+
+	if (run_additional_or_modified_instructions(opcode, VX_reg, VY_reg)) {
+		return;
+	}
+
 	uint8_t sub_opcode = 0;
 
 	switch (opcode & 0xF000)
@@ -116,7 +116,8 @@ void Chip8::run_instruction() {
 		case 0x0000:
 			if (opcode == 0x00E0) {
 				// clear screen
-				memset(px_states, 0, sizeof(px_states));
+				printf("clear screen\n");
+				memset(px_states.data(), 0, px_states.size());
 				draw_flag = true;
 
 			} else if (opcode == 0x00EE) {
@@ -129,9 +130,6 @@ void Chip8::run_instruction() {
 				program_ctr = stack.back();
 				stack.pop_back();
 
-			} else if (opcode > 0xFF) {
-				printf("Unsupported opcode\n");
-				// chip8.is_paused = true;
 			}
 			break;
 
@@ -142,15 +140,14 @@ void Chip8::run_instruction() {
 
 		case 0x2000: // 2NNN
 			// call subroutine at 0NNN
-			// stack[stack_ptr] = program_ctr;
 			stack.push_back(program_ctr);
-			program_ctr =  opcode & 0x0FFF;
+			program_ctr = opcode & 0x0FFF;
 			return;
 
 		case 0x3000: // 3XNN
 			// Skips the next instruction if VX equals NN (usually the next instruction is a jump to skip a code block)
 			if ((opcode & 0xFF) == registers[VX_reg]) {
-				program_ctr += 2;
+				skip_instruction();
 			}
 
 			break;
@@ -158,7 +155,7 @@ void Chip8::run_instruction() {
 		case 0x4000: // 4XNN
 			// Skips the next instruction if VX does not equal NN (usually the next instruction is a jump to skip a code block)
 			if ((opcode & 0xFF) != registers[VX_reg]) {
-				program_ctr += 2;
+				skip_instruction();
 			}
 
 			break;
@@ -166,7 +163,7 @@ void Chip8::run_instruction() {
 		case 0x5000: // 5XY0
 			// Skips the next instruction if VX equals VY (usually the next instruction is a jump to skip a code block)
 			if (registers[VX_reg] == registers[VY_reg]) {
-				program_ctr += 2;
+				skip_instruction();
 			}
 
 			break;
@@ -191,52 +188,58 @@ void Chip8::run_instruction() {
 			if (sub_opcode == 0) {
 				registers[VX_reg] = registers[VY_reg];
 			} else if (sub_opcode == 1) {
-				//registers[0xF] = 0;
 				registers[VX_reg] |= registers[VY_reg];
 			} else if (sub_opcode == 2) {
-				//registers[0xF] = 0;
 				registers[VX_reg] &= registers[VY_reg];
 			} else if (sub_opcode == 3) {
-				//registers[0xF] = 0;
 				registers[VX_reg] ^= registers[VY_reg];
 
 			// Adds VY to VX. VF is set to 1 when there's an overflow, and to 0 when there is not.
 			} else if (sub_opcode == 4) {
+				auto previous_VX = registers[VX_reg];
 				registers[VX_reg] += registers[VY_reg];
-				registers[0xF] = (registers[VY_reg] > (0xFF - registers[VX_reg])) ? 1 : 0;
+
+				registers[0xF] = ((registers[VY_reg] + previous_VX) > 0xFF) ? 1 : 0;
 
 			// VY is subtracted from VX. VF is set to 0 when there's an underflow, and 1 when there is not.
 			} else if (sub_opcode == 5) {
-				registers[0xF] = (registers[VY_reg] > registers[VX_reg]) ? 0 : 1;
+				auto previous_VX = registers[VX_reg];
 				registers[VX_reg] -= registers[VY_reg];
 
-			// Shifts VX to the right by 1, then stores the least significant bit of VX prior to the shift into VF.
-			} else if (sub_opcode == 6) {
-				// CHIP-48 and SUPER-CHIP version skip this first step
-				// registers[VX_reg] = registers[VY_reg];
+				registers[0xF] = (registers[VY_reg] > previous_VX) ? 0 : 1;
 
-				registers[0xF] = registers[VX_reg] & 0x1;
+			// Store the value of register VY shifted right one bit in register VX. Set register VF to the
+			// least significant bit prior to the shift
+			} else if (sub_opcode == 6) {
+				auto previous_value = registers[VY_reg];
+
+				// CHIP-48 and SUPER-CHIP version skip this first step
+				registers[VX_reg] = registers[VY_reg];
 				registers[VX_reg] >>= 1;
+
+				registers[0xF] = previous_value & 0x1;
 
 			// Sets VX to VY minus VX. VF is set to 0 when there's an underflow, and 1 when there is not
 			} else if (sub_opcode == 7) {
-				registers[0xF] = (registers[VX_reg] > registers[VY_reg]) ? 0 : 1;
 				registers[VX_reg] = registers[VY_reg] - registers[VX_reg];
+				registers[0xF] = (registers[VX_reg] > registers[VY_reg]) ? 0 : 1;
 
 			// Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset.
 			} else if (sub_opcode == 0xE) {
-				// CHIP-48 and SUPER-CHIP version skip this first step
-				// registers[VX_reg] = registers[VY_reg];
+				auto previous_value = registers[VY_reg];
 
-				registers[0xF] = (registers[VX_reg] & 0x80) ? 1 : 0;
+				// CHIP-48 and SUPER-CHIP version skip this first step
+				registers[VX_reg] = registers[VY_reg];
 				registers[VX_reg] <<= 1;
+
+				registers[0xF] = (previous_value & 0x80) ? 1 : 0;
 			}
 			break;
 
 		case 0x9000: // 9XY0
 			// Skips the next instruction if VX does not equal VY. (Usually the next instruction is a jump to skip a code block)
 			if (registers[VX_reg] != registers[VY_reg]) {
-				program_ctr += 2;
+				skip_instruction();
 			}
 			break;
 
@@ -268,14 +271,14 @@ void Chip8::run_instruction() {
 		case 0xE000:
 			// Skips the next instruction if the key stored in VX is pressed (usually the next instruction is a jump to skip a code block)
 			if ((opcode & 0xFF) == 0x9E) {
-				if (keys_pressed[registers[VX_reg]] == true) {
-					program_ctr += 2;
+				if (keys[registers[VX_reg]].is_pressed) {
+					skip_instruction();
 				}
-			}
+
 			// Skips the next instruction if the key stored in VX is not pressed (usually the next instruction is a jump to skip a code block)
-			else if ((opcode & 0xFF) == 0xA1) {
-				if (keys_pressed[registers[VX_reg]] == false) {
-					program_ctr += 2;
+			} else if ((opcode & 0xFF) == 0xA1) {
+				if (!keys[registers[VX_reg]].is_pressed) {
+					skip_instruction();
 				}
 
 			} else {
@@ -295,12 +298,23 @@ void Chip8::run_instruction() {
 			if (sub_opcode == 0x0A) {
 				bool key_pressed = false;
 
-				for(uint8_t i = 0; i < 16; i++)
-				{
-					if (keys_pressed[i])
-					{
-						registers[VX_reg] = i;
+				for (uint8_t i = 0; i < keys.size(); i++) {
+					
+					// On the original COSMAC VIP, a key is only registered as pressed if it's also been released
+					if (wait_for_key_release) {
+						if (keys[i].released_on_wait_event) {
+							// if multiple keys happen to be released at the same time, the lowest order key is selected
+							registers[VX_reg] = i;
+							cancel_key_wait_event();
+
+							goto switch_end;
+						}
+					}
+
+					else if (keys[i].is_pressed) {
 						key_pressed = true;
+						wait_for_key_release = true;
+						return;
 					}
 				}
 
@@ -322,11 +336,6 @@ void Chip8::run_instruction() {
 			} else if (sub_opcode == 0x1E) {
 				index_reg += registers[VX_reg];
 
-				// TODO: implement a setting from the menubar that enables this functionallity
-				if (_0xFX1E_overflow_enabled) {
-					registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
-				}
-
 			// Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font
 			} else if (sub_opcode == 0x29) {
 				index_reg = registers[VX_reg] * 5;
@@ -346,8 +355,6 @@ void Chip8::run_instruction() {
 			// Stores from V0 to VX (including VX) in memory, starting at address I. The offset
 			// from I is increased by 1 for each value written, but I itself is left unmodified.
 
-			// Before the CHIP-8 interpreters CHIP48 and SUPER-CHIP (1970s - 1980s), the I register
-			// was incremented each time it stored or loaded one register. (I += X + 1).
 			} else if (sub_opcode == 0x55) {
 				for (uint8_t i = 0; i <= VX_reg; i++) {
 					memory[index_reg + i] = registers[i];
@@ -357,7 +364,9 @@ void Chip8::run_instruction() {
 					lowest_mem_addr_updated = index_reg;
 				}
 
-				index_reg += VX_reg + 1;
+				if (increment_i) {
+					index_reg += VX_reg + 1;
+				}
 
 			// Fills from V0 to VX (including VX) with values from memory, starting at address I.
 			// The offset from I is increased by 1 for each value read, but I itself is left unmodified.
@@ -366,7 +375,9 @@ void Chip8::run_instruction() {
 					registers[i] = memory[index_reg + i];
 				}
 
-				index_reg += VX_reg + 1;
+				if (increment_i) {
+					index_reg += VX_reg + 1;
+				}
 			}
 			break;
 
@@ -374,10 +385,11 @@ void Chip8::run_instruction() {
 			break;
 	}
 
+switch_end:
 	program_ctr += 2;
 }
 
-void Chip8::countdown_timers() 
+void Chip8Interpreter::countdown_timers() 
 {
 	if (delay_timer > 0)
 		--delay_timer;
@@ -399,11 +411,16 @@ void Chip8::countdown_timers()
 // - 1 byte sound timer
 // - 1 byte current stack size
 // - all stack elements from first to last added if stack size is not 0 (0 - 32 bytes)
-// - 256 bytes that hold the state of 8 pixels in each byte (pixels / 8 = 256)
+// - 256 bytes that hold the state of 8 pixels in each byte (pixels / 8 = 256) or 1024 for super-chip
+
+// TODO:
+// - 2 bytes for size of additional_data
+// - each byte of additional data
+
 // - 2 byte lowest memory address update by the program/game
 // - x byte memory from lowest memory address overwritten and onward
 // - TODO: add a CRC to the end of the file and check if it is valid when loading it
-bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp) 
+bool Chip8Interpreter::save_program_state(std::string& program_name, uint8_t state_number, uint32_t utc_timestamp) 
 {
 	return false;
 
@@ -413,7 +430,7 @@ bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp)
 
 	// 4 + 2 + 2 + 1 + 1 + 1 + 256 (everything above excluding stack elements, CRC size)
 	static size_t MIN_SAVE_FILE_SIZE = 265;
-	size_t save_file_size = MIN_SAVE_FILE_SIZE + (stack.size() * sizeof(uint16_t));
+	size_t save_file_size = MIN_SAVE_FILE_SIZE  + (stack.size() * sizeof(uint16_t)); // + (sizeof(uint16_t) + additional_data.size())
 
 	// get last memory address with relevent data
 	uint8_t last_mem_addr = 0;
@@ -471,6 +488,13 @@ bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp)
 		}
 	}
 
+	// sys_put_be16(additional_data.size(), idx);
+	// idx+=2;
+
+	// for (auto& byte : additional_data) {
+	// 	idx++[0] = byte;
+	// }
+
 	// only adding updated memory 
 	if (lowest_mem_addr_updated != 0xFFF) {
 		idx++[0] = lowest_mem_addr_updated;
@@ -491,7 +515,7 @@ bool Chip8::save_program_state(uint8_t state_number, uint32_t utc_timestamp)
 	return true;
 }
 
-void Chip8::load_program_state(std::string file_name) {
+void Chip8Interpreter::load_program_state(std::string file_name) {
 
 	if (file_name.size() == 0) {
 		return;
@@ -553,6 +577,16 @@ void Chip8::load_program_state(std::string file_name) {
 
 		px_states[i] = (buffer_ptr[0] & px_bit_mask) ? 1 : 0;
 	}
+
+	// uint16_t additional_data_size = sys_get_be16(buffer_ptr);
+	// buffer_ptr += sizeof(uint16_t);
+
+	// additional_data.clear();
+	// additional_data.resize(sys_get_be16(buffer_ptr));
+
+	// for (uint16_t i = 0; i < additional_data_size; i++) {
+	// 	additional_data.push_back(buffer_ptr++[0]);
+	// }
 
 	// if the rom never updated the memory then we don't try to overwrite the default memory values from the ROM
 	if (static_cast<uint16_t>(buffer_ptr - buffer.data()) == file_size) {

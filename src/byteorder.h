@@ -9,6 +9,7 @@
  */
 
 #include <stddef.h>
+#include <stdint.h>
 // #include <sys/__assert.h>
 // #include <toolchain.h>
 
