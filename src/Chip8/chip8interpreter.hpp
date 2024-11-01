@@ -33,6 +33,7 @@ struct key_info {
 
 public:
 	Chip8Interpreter(std::string name, uint8_t width, uint8_t height, uint8_t sprite_width);
+	virtual ~Chip8Interpreter() = default;
 
 	const uint8_t native_width;
 	const uint8_t native_height;
@@ -166,6 +167,7 @@ protected:
 	std::vector<uint8_t> additional_data;
 
 	virtual bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) { return false; };
+	virtual void skip_instruction() { program_ctr += 2; };
 	virtual void interpret_additional_data() = 0;
 	virtual void update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) = 0;
 };

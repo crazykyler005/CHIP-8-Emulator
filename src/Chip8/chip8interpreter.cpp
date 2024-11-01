@@ -147,7 +147,7 @@ void Chip8Interpreter::run_instruction() {
 		case 0x3000: // 3XNN
 			// Skips the next instruction if VX equals NN (usually the next instruction is a jump to skip a code block)
 			if ((opcode & 0xFF) == registers[VX_reg]) {
-				program_ctr += 2;
+				skip_instruction();
 			}
 
 			break;
@@ -155,7 +155,7 @@ void Chip8Interpreter::run_instruction() {
 		case 0x4000: // 4XNN
 			// Skips the next instruction if VX does not equal NN (usually the next instruction is a jump to skip a code block)
 			if ((opcode & 0xFF) != registers[VX_reg]) {
-				program_ctr += 2;
+				skip_instruction();
 			}
 
 			break;
@@ -163,7 +163,7 @@ void Chip8Interpreter::run_instruction() {
 		case 0x5000: // 5XY0
 			// Skips the next instruction if VX equals VY (usually the next instruction is a jump to skip a code block)
 			if (registers[VX_reg] == registers[VY_reg]) {
-				program_ctr += 2;
+				skip_instruction();
 			}
 
 			break;
@@ -239,7 +239,7 @@ void Chip8Interpreter::run_instruction() {
 		case 0x9000: // 9XY0
 			// Skips the next instruction if VX does not equal VY. (Usually the next instruction is a jump to skip a code block)
 			if (registers[VX_reg] != registers[VY_reg]) {
-				program_ctr += 2;
+				skip_instruction();
 			}
 			break;
 
@@ -272,13 +272,13 @@ void Chip8Interpreter::run_instruction() {
 			// Skips the next instruction if the key stored in VX is pressed (usually the next instruction is a jump to skip a code block)
 			if ((opcode & 0xFF) == 0x9E) {
 				if (keys[registers[VX_reg]].is_pressed) {
-					program_ctr += 2;
+					skip_instruction();
 				}
 
 			// Skips the next instruction if the key stored in VX is not pressed (usually the next instruction is a jump to skip a code block)
 			} else if ((opcode & 0xFF) == 0xA1) {
 				if (!keys[registers[VX_reg]].is_pressed) {
-					program_ctr += 2;
+					skip_instruction();
 				}
 
 			} else {

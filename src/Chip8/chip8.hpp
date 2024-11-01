@@ -7,6 +7,7 @@ class Chip8 : public Chip8Interpreter {
 
 public:
 	Chip8(Chip8Type type);
+	~Chip8() override = default;  // Default destructor
 
 	bool wait_for_key_release = false;
 	bool switch_type(Chip8Type type) override;

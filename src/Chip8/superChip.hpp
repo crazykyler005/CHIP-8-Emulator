@@ -13,9 +13,11 @@ class SuperChip : public Chip8Interpreter {
 
 public:
 	SuperChip(Chip8Type type);
+	~SuperChip() override = default;  // Default destructor
+
 	bool switch_type(Chip8Type type) override;
 
-private:
+protected:
 
 	inline static uint8_t super_fontset[160] = {
 		0xF0, 0x90, 0x90, 0x90, 0xF0, 0x90, 0x90, 0x90, 0xF0, 0xF0, // 0
@@ -37,14 +39,14 @@ private:
 	};
 
 	void scroll_screen(ScrollDirection direction, uint8_t px_shift = 4);
-	bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg);
+	bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) override;
 	void update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) override;
 	bool _high_res_mode_en = false;
 
 	// TODO: Define this
 	void interpret_additional_data() override;
 
-	void lores_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height);
+	virtual void low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height);
 
 	// TODO: save to file instead
 	uint8_t user_flag_registers[8];

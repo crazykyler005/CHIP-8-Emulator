@@ -14,6 +14,11 @@ SuperChip::SuperChip(Chip8Type type) :
 
 bool SuperChip::switch_type(Chip8Type type)
 {
+	if (_type == Chip8Type::SUPER_MODERN) {
+		printf("Invalid type conversion\n");
+		return false;
+	}
+
 	if (type != Chip8Type::SUPER_1p0 && type != Chip8Type::SUPER_1p1) {
 		printf("Invalid type conversion\n");
 		return false;
@@ -31,7 +36,7 @@ void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 	registers[0xF] = 0;
 
 	if (!_high_res_mode_en) {
-		lores_draw_gfx(x, y, sprite_height);
+		low_res_draw_gfx(x, y, sprite_height);
 		return;
 	}
 
@@ -61,7 +66,6 @@ void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 
 				// if the x or y position of the pixel is off the screen, stop drawing
 				if (((y + yline) >= native_height) || ((x + xline) >= native_width)) {
-					// or are clipped by the bottom of the screen
 					registers[0xF]++;
 					break;
 				}
@@ -83,54 +87,54 @@ void SuperChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 		}
 	}
 
+	if ((_type == Chip8Type::SUPER_MODERN) && (registers[0xF] > 0)) {
+		registers[0xF] = 1;
+	}
+
 	draw_flag = true;
 	
 	return;
 }
 
-void SuperChip::lores_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height) {
+void SuperChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height) {
 	// low-resolution mode (64x32), even though the application is suppose to emulate that the
 	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
 	// each pixel is represented by 2x2 on-screen pixels.
 
-	// used to determine if a pixel is represented by x on screen pixels
-	uint8_t pixel_size = 2;
-	uint8_t sprite_width = 8;
-	uint8_t draw_width = 32;
+	const uint8_t pixel_size = 2;
+	const uint8_t sprite_width = 8;
+	const uint8_t draw_width = 32;
 
 	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
 	x = (x * 2) % native_width;
 	y = (y * 2) % native_height;
 
-	// drawing starts at the nearest 16th pixel border
+	// the initial drawing starts at the lowest divisible horizontal 16th pixel border
 	uint8_t starting_x = x & 0xF0;
 
-	for (uint8_t yline = 0; yline < (sprite_height * 2); yline += pixel_size)
+	// if the y position of the pixel is off screen, stop drawing
+	for (uint8_t yline = 0; yline < (sprite_height * 2) && (y + yline) < native_height; yline += pixel_size)
 	{
-		// in lores a row of pixels are always drawn in 32x2 pixel strips
+		uint8_t current_y_pos = y + yline;
+
+		// A row of pixels are always drawn in 32x2 pixel strips thus a 32px buffer is needed
 		uint32_t pixels = 0;
 
 		// if low-res, each sprite has a width of 8px so only a single byte from mem is pulled per row of pixels.
 		for (uint8_t px = 0; px < sprite_width; px++) {
 			// Fetch the pixels from the memory starting at location I
 			if ((memory[index_reg + (yline / 2)] & (1 << px))) {
-				// 8px row is upscaled to 16px
+				// 8px sprite row is upscaled to 16px
 				// ex: 10111101 -> 11001111 11110011
 				pixels = (0b11 << (px * 2)) | pixels;
 			}
 		}
 
+		// shifts sprite pixels to the right of the 16th pixel border
 		pixels <<= ((draw_width / 2) - (x & 0xF));
 
 		// if the x position of a pixel is off screen, stop drawing
 		for (uint xline = 0; xline < draw_width && (starting_x + xline) < native_width; xline++) {
-			uint8_t current_y_pos = y + yline;
-
-			// if the y position of the pixel is off screen, stop drawing
-			// or are clipped by the bottom of the screen
-			if (current_y_pos >= native_height) {
-				break;
-			}
 
 			size_t current_pixel = (starting_x + xline + (current_y_pos * native_width));
 
@@ -140,14 +144,15 @@ void SuperChip::lores_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height) {
 					registers[0xF] = 1;
 				}
 
+				// even the pixels that are not a part of the sprite get XOR'd with the on-screen pixels which
+				// could create unintended artifacts though these are not known to be seen in created applications
 				px_states[current_pixel] ^= 1;
 			}
 
-			// if low-res then the upscaled row of pixels (16x1) gets upscaled vertically to 16x2
-			// thus causing each pixel to be repesented as 2x2 on screen pixels
+			// Each of the 32 pixels per row drawn gets upscaled vertically (1x1->1x2)
 
 			// NOTE: even though each pixel of a sprite is represented as 2x2 on screen pixels, 
-			// that doesn't mean the state of each is going to be the same. The superchip XORs the
+			// that doesn't mean the state of those 4 pixels are going to be the same. The superchip XORs the
 			// the top pixels with the current on-screen pixels and then copies them down.
 			if ((current_y_pos + 1) < native_height) {
 				px_states[current_pixel + native_width] = px_states[current_pixel];
@@ -165,6 +170,10 @@ void SuperChip::scroll_screen(ScrollDirection direction, uint8_t px_shift)
 	// do nothing if shift is 0
 	if (px_shift == 0) {
 		return;
+	}
+
+	if (!_high_res_mode_en && (_type == Chip8Type::SUPER_MODERN)) {
+		px_shift *= 2;
 	}
 
 	switch (direction)  {
@@ -306,6 +315,7 @@ bool SuperChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_
 		case 0xD000:
 
 			if (low_byte & 0x0F == 0) {
+				printf("used\n");
 				update_gfx(registers[VX_reg], registers[VY_reg], (_high_res_mode_en ? 16 : 8));
 			} else {
 				update_gfx(registers[VX_reg], registers[VY_reg], static_cast<uint8_t>(opcode & 0xF));

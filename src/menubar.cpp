@@ -172,9 +172,16 @@ void MenuBar::add_intrepreter_menu()
 		if (ImGui::MenuItem("VERSION 1.0", "", type == Chip8Type::SUPER_1p0)) {
 			selected_type = Chip8Type::SUPER_1p0;
 		}
-		if (ImGui::MenuItem("VERSION 1.1", "", type == Chip8Type::SUPER_1p1)) {
+		if (ImGui::MenuItem("VERSION 1.1", "Legacy", type == Chip8Type::SUPER_1p1)) {
 			selected_type = Chip8Type::SUPER_1p1;
 		}
+		if (ImGui::MenuItem("MODERN", "", type == Chip8Type::SUPER_MODERN)) {
+			selected_type = Chip8Type::SUPER_MODERN;
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::MenuItem("XO Chip", "", false, false)) {}
 
 		if (selected_type != Chip8Type::END) {
 			if (!_chip8_ptr->switch_type(selected_type)) {

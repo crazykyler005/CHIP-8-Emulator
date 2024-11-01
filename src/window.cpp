@@ -78,8 +78,10 @@ void Window::switch_interpreter(Chip8Type type)
 
 	if (type < Chip8Type::SUPER_1p0) {
 		_chip8_ptr = std::make_shared<Chip8>(type);
-	} else {
+	}  else if (type < Chip8Type::SUPER_1p0) {
 		_chip8_ptr = std::make_shared<SuperChip>(type);
+	} else {
+		_chip8_ptr = std::make_shared<SuperChipModern>();
 	}
 
 	m_menubar->set_chip8_pointer(_chip8_ptr);

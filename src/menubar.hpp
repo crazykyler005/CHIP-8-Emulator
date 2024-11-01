@@ -14,6 +14,7 @@
 
 #include "chip8.hpp"
 #include "superChip.hpp"
+#include "superChipModern.hpp"
 
 class Window;
 
