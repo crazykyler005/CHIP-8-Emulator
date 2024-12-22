@@ -74,15 +74,24 @@ int Window::init() {
 
 void Window::switch_interpreter(Chip8Type type)
 {
+	bool was_running = _chip8_ptr->is_running;
+	
 	stop_game_loop();
+
+	std::lock_guard<std::mutex> lock(mtx);
 
 	if (type < Chip8Type::SUPER_1p0) {
 		_chip8_ptr = std::make_shared<Chip8>(type);
-	}  else if (type < Chip8Type::SUPER_1p0) {
-		_chip8_ptr = std::make_shared<SuperChip>(type);
-	} else {
+	}  else if (type < Chip8Type::SUPER_MODERN) {
+		_chip8_ptr = std::make_shared<SuperChipLegacy>(type);
+	} else if (type == Chip8Type::SUPER_MODERN) {
 		_chip8_ptr = std::make_shared<SuperChipModern>();
+	} else {
+		_chip8_ptr = std::make_shared<XOChip>();
 	}
+
+	m_menubar->set_chip8_pointer(nullptr);
+	screen.set_chip8_pointer(nullptr);
 
 	m_menubar->set_chip8_pointer(_chip8_ptr);
 	screen.set_chip8_pointer(_chip8_ptr);
@@ -92,7 +101,9 @@ void Window::switch_interpreter(Chip8Type type)
 	// load program into new Chip8Inerpreter instance
 	_chip8_ptr->reset();
 
-	start_game_loop();
+	if (was_running) {
+		start_game_loop();
+	}
 }
 
 void Window::main_loop() 

@@ -2,15 +2,14 @@
 #include "chip8.hpp"
 
 Chip8::Chip8(Chip8Type type) :
-	Chip8Interpreter("Chip-8", 64, 32, 8)
+	Chip8Interpreter("Chip-8", type, 64, 32, 8, 700)
 {
-	_type = type;
+	_selected_planes = 0b01;
 }
 
 bool Chip8::switch_type(Chip8Type type)
 {
 	if (type != Chip8Type::ORIGINAL && type != Chip8Type::AMIGA_CHIP8) {
-		printf("Invalid type conversion\n");
 		return false;
 	}
 	
@@ -20,7 +19,8 @@ bool Chip8::switch_type(Chip8Type type)
 	return true;
 }
 
-void Chip8::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
+void Chip8::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
+{
 	// Reset register VF
 	registers[0xF] = 0;
 

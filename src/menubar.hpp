@@ -13,8 +13,9 @@
 #include "ImGuiFileDialog.h"
 
 #include "chip8.hpp"
-#include "superChip.hpp"
+#include "superChipLegacy.hpp"
 #include "superChipModern.hpp"
+#include "xoChip.hpp"
 
 class Window;
 

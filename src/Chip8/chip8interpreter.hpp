@@ -32,13 +32,13 @@ struct key_info {
 };
 
 public:
-	Chip8Interpreter(std::string name, uint8_t width, uint8_t height, uint8_t sprite_width);
+	Chip8Interpreter(std::string name, Chip8Type type, uint8_t width, uint8_t height, uint8_t sprite_width, uint16_t ops);
 	virtual ~Chip8Interpreter() = default;
 
 	const uint8_t native_width;
 	const uint8_t native_height;
 
-	virtual bool switch_type(Chip8Type type) = 0;
+	virtual bool switch_type(Chip8Type type) { return (_type == type); };
 	virtual Chip8Type& get_type() { return _type; };
 
 	virtual void reset();
@@ -79,6 +79,8 @@ public:
 	// std::vector<uint8_t> px_states[(64 * 32) / 8] = {};
 	std::vector<uint8_t> px_states;
 
+	virtual uint8_t number_of_planes() { return (native_height * native_width) / px_states.size(); };
+
 protected:
 
 	inline static const std::string SAVE_FILE_EXTENSION = ".sav";
@@ -101,6 +103,7 @@ protected:
 	std::vector<uint16_t> stack;
 
 	Chip8Type _type;
+	uint8_t _selected_planes = 0b01;
 
 	uint8_t memory[MEMORY_SIZE] = {};
 	uint8_t registers[16] = {};

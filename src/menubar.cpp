@@ -126,12 +126,27 @@ void MenuBar::add_settings_menu()
 		    float sz = ImGui::GetTextLineHeight();
 		    for (int i = 0; i < Window::COLOR_SCHEME_ARRAY.size(); i++)
 		    {
-		        ImVec2 c1_pos = ImGui::GetCursorScreenPos();
-				ImVec2 c2_pos = {c1_pos.x + sz + 3, c1_pos.y};
+		        ImVec2 fg_c_pos = ImGui::GetCursorScreenPos();
+				ImVec2 unselect_c_pos = {fg_c_pos.x + sz + 3, fg_c_pos.y};
 
-		        ImGui::GetWindowDrawList()->AddRectFilled(c1_pos, ImVec2(c1_pos.x + sz, c1_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].color1);
-				ImGui::GetWindowDrawList()->AddRectFilled(c2_pos, ImVec2(c2_pos.x + sz, c2_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].color2);
-		        ImGui::Dummy(ImVec2(sz * 2, sz));
+		        ImGui::GetWindowDrawList()->AddRectFilled(fg_c_pos, ImVec2(fg_c_pos.x + sz, fg_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].foreground_color);
+
+				if (_chip8_ptr->get_type() == Chip8Type::XO) {
+					ImVec2 intersect_c_pos = { fg_c_pos.x + sz + 3, fg_c_pos.y };
+					ImVec2 bg_c_pos = { intersect_c_pos.x + sz + 3, intersect_c_pos.y };
+					unselect_c_pos = { bg_c_pos.x + sz + 3, bg_c_pos.y };
+
+					ImGui::GetWindowDrawList()->AddRectFilled(intersect_c_pos, ImVec2(intersect_c_pos.x + sz, intersect_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].intersection_color);
+					ImGui::GetWindowDrawList()->AddRectFilled(bg_c_pos, ImVec2(bg_c_pos.x + sz, bg_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].background_color);
+					ImGui::GetWindowDrawList()->AddRectFilled(unselect_c_pos, ImVec2(unselect_c_pos.x + sz, unselect_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].unselected_plane_color);
+
+					ImGui::Dummy(ImVec2((sz * 4) + 6, sz));
+				} else {
+
+					ImGui::GetWindowDrawList()->AddRectFilled(unselect_c_pos, ImVec2(unselect_c_pos.x + sz, unselect_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].unselected_plane_color);
+					ImGui::Dummy(ImVec2(sz * 2, sz));
+				}
+
 		        ImGui::SameLine();
 		        
 				if ( ImGui::MenuItem(Window::COLOR_SCHEME_ARRAY[i].name.c_str(), 
@@ -181,10 +196,13 @@ void MenuBar::add_intrepreter_menu()
 
 		ImGui::Separator();
 
-		if (ImGui::MenuItem("XO Chip", "", false, false)) {}
+		if (ImGui::MenuItem("XO Chip", "", type == Chip8Type::XO)) {
+			selected_type = Chip8Type::XO;
+		}
 
 		if (selected_type != Chip8Type::END) {
 			if (!_chip8_ptr->switch_type(selected_type)) {
+				printf("Invalid type conversion. Switching interpreter\n");
 				_parent_window.switch_interpreter(selected_type);
 			}
 

@@ -40,8 +40,10 @@ add_executable(chip8
 
     src/Chip8/chip8.cpp
 	src/Chip8/chip8interpreter.cpp
-	src/Chip8/superChip.cpp
+	src/Chip8/superChipInterpreter.cpp
+	src/Chip8/superChipLegacy.cpp
 	src/Chip8/superChipModern.cpp
+	src/Chip8/xoChip.cpp
 
     src/menubar.cpp
     src/helper_functions.cpp

@@ -10,9 +10,11 @@
 
 #include "chip8interpreter.hpp"
 
-Chip8Interpreter::Chip8Interpreter(std::string name, uint8_t width, uint8_t height, uint8_t sprite_width) :
-	INTERPRETER_NAME(name), native_width(width), native_height(height)
+Chip8Interpreter::Chip8Interpreter(std::string name, Chip8Type type, uint8_t width, uint8_t height, uint8_t sprite_width, uint16_t ops) :
+	INTERPRETER_NAME(name), native_width(width), native_height(height), opcodes_per_second(ops)
 {
+	_type = type;
+
 	// loading fontset into the designated position in memory (0-80)
 	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));
 
@@ -98,7 +100,7 @@ void Chip8Interpreter::run_instruction() {
 	uint8_t VX_reg = (opcode >> 8) & 0xF; // 3rd nibble
 	uint8_t VY_reg = (opcode >> 4) & 0xF; // 2nd nibble
 
-	// printf("opcode: %x, i: %d, pc: %d, reg[vx]: %d, VX_reg: %d\n", opcode, index_reg, program_ctr, registers[VX_reg], VX_reg);
+	printf("opcode: %x, i: %d, pc: %d, reg[vx]: %d, VX_reg: %d\n", opcode, index_reg, program_ctr, registers[VX_reg], VX_reg);
 
 	// DXYN is the slowest command to run so to emulate this we wait until the next frame the run the next instruction
 	if (wait_for_display_update && draw_flag) {
