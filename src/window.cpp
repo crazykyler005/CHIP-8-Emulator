@@ -239,13 +239,16 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 			}
 		}
 
-	} else if (is_press_event && ((modifier & ~(KMOD_CTRL | KMOD_ALT)) == KMOD_NONE) &&
-		((modifier & KMOD_CTRL) & KMOD_CTRL) && _chip8_ptr->is_running) {
+	} else if (is_press_event && ((modifier & (KMOD_CTRL | KMOD_ALT)) != KMOD_NONE) &&
+		(modifier & KMOD_CTRL) && _chip8_ptr->is_running) {
+
+		printf("test\n");
 		if (char_pressed == SDLK_s) {
 
 		} else if (char_pressed == SDLK_l) {
 			
 		} else if (char_pressed == SDLK_p) {
+			printf("test2\n");
 			if (_chip8_ptr->is_paused) {
 				_chip8_ptr->is_paused = false;
 				return;
