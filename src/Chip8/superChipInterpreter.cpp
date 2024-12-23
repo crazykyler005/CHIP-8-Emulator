@@ -87,69 +87,78 @@ void SuperChipInterpreter::scroll_screen(ScrollDirection direction, uint8_t px_s
 	}
 
 	// xo or modern super chip
-	if (!_high_res_mode_en && (_type <= Chip8Type::SUPER_MODERN)) {
+	if (!_high_res_mode_en && (_type >= Chip8Type::SUPER_MODERN)) {
 		px_shift *= 2;
 	}
 
-	switch (direction)  {
-		case ScrollDirection::DOWN:
-			for (int16_t yline = native_height - px_shift; yline > -1; yline--) {
-				for (uint8_t xline = 0; xline < native_width; xline++)
-				{
-					px_states[xline + ((yline + px_shift) * native_width)] = px_states [xline + (yline * native_width)];
-				}
-			}
+	// screen scrolling can apply to one or all selected planes simulatiously
+	for (uint8_t plane = 0; plane < number_of_planes(); plane++) {
+		if ((_selected_planes & (1 << plane)) == 0) {
+			continue;
+		}
 
-			// clear everything above moved pixels
-			memset(px_states.data(), 0, (native_width * px_shift));
-			break;
+		size_t plane_offset = (native_height * native_width * plane);
 
-		case ScrollDirection::RIGHT:
-			for (int16_t xline = native_width - px_shift; xline > -1; xline--) {
-				for (uint8_t yline = 0; yline < native_height; yline++)
-				{
-					px_states[(xline + px_shift) + (yline * native_width)] = px_states [xline + (yline * native_width)];
-
-					// Clear everything to the left of the shifted pixels
-					if (xline < px_shift) {
-						px_states [xline + (yline * native_width)] = false;
+		switch (direction)  {
+			case ScrollDirection::DOWN:
+				for (int16_t yline = native_height - px_shift; yline > -1; yline--) {
+					for (uint8_t xline = 0; xline < native_width; xline++)
+					{
+						px_states[xline + ((yline + px_shift) * native_width) + plane_offset] = px_states [xline + (yline * native_width) + plane_offset];
 					}
 				}
-			}
 
-			break;
+				// clear everything above moved pixels
+				memset(px_states.data() + plane_offset, 0, (native_width * px_shift));
+				break;
 
-		case ScrollDirection::LEFT:
-			for (uint8_t xline = 0; xline < native_width - px_shift; xline++) {
-				for (uint8_t yline = 0; yline < native_height; yline++)
-				{
-					px_states[xline + (yline * native_width)] = px_states [(xline + px_shift) + (yline * native_width)];
+			case ScrollDirection::RIGHT:
+				for (int16_t xline = native_width - px_shift; xline > -1; xline--) {
+					for (uint8_t yline = 0; yline < native_height; yline++)
+					{
+						px_states[((xline + px_shift) + (yline * native_width)) + plane_offset] = px_states [(xline + (yline * native_width)) + plane_offset];
 
-					// Clear everything to the right of the shifted pixels
-					if (xline >= (native_width - px_shift)) {
-						px_states [(xline + px_shift) + (yline * native_width)] = false;
+						// Clear everything to the left of the shifted pixels
+						if (xline < px_shift) {
+							px_states [(xline + (yline * native_width)) + plane_offset] = false;
+						}
 					}
 				}
-			}
 
-			break;
+				break;
 
-		// this scroll operation is not officially supported by super chip 1.1
-		case ScrollDirection::UP:
-			for (uint8_t yline = px_shift; yline < native_height; yline++) {
-				for (uint8_t xline = 0; xline < native_width; xline++)
-				{
-					px_states[xline + (yline * native_width)] = px_states [xline + (native_width * (yline - px_shift))];
+			case ScrollDirection::LEFT:
+				for (uint8_t xline = 0; xline < native_width - px_shift; xline++) {
+					for (uint8_t yline = 0; yline < native_height; yline++)
+					{
+						px_states[xline + (yline * native_width) + plane_offset] = px_states [(xline + px_shift) + (yline * native_width) + plane_offset];
+
+						// Clear everything to the right of the shifted pixels
+						if (xline >= (native_width - px_shift)) {
+							px_states [(xline + px_shift) + (yline * native_width) + plane_offset] = false;
+						}
+					}
 				}
-			}
 
-			// clear everything below moved pixels
-			memset(&memory[native_width * (native_height - px_shift)], false, (native_width * px_shift));
+				break;
 
-			break;
+			// this scroll operation is not officially supported by super chip 1.1
+			case ScrollDirection::UP:
+				for (uint8_t yline = 0; yline < (native_height - px_shift); yline++) {
+					for (uint8_t xline = 0; xline < native_width; xline++)
+					{
+						px_states[xline + (yline * native_width) + plane_offset] = px_states[xline + ((yline + px_shift) * native_width) + plane_offset];
+					}
+				}
 
-		default:
-			return;
+				// clear everything below moved pixels
+				memset(px_states.data() + (native_width * (native_height - px_shift)) + plane_offset, false, (native_width * px_shift));
+
+				break;
+
+			default:
+				return;
+		}
 	}
 
 	draw_flag = true;
@@ -167,7 +176,7 @@ bool SuperChipInterpreter::run_additional_or_modified_instructions(uint16_t& opc
 			if (_type != Chip8Type::SUPER_1p0) {
 				// Scroll display N pixels up; in low resolution mode, N/2 pixels
 				// this instruction is not officially supported by super chip 1.1
-				if (sub_opcode == 0xB0) {
+				if ((sub_opcode & 0xFF0) == 0xB0) {
 					scroll_screen(ScrollDirection::UP, low_byte & 0xF);
 
 				// Scroll display N pixels down; in low resolution mode, N/2 pixels

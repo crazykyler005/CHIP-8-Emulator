@@ -62,17 +62,18 @@ void XOChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 					break;
 				}
 
-				size_t current_pixel = (x + xline + ((y + yline) * native_width));
-
 				// sets pixels in each selected plane
-				for (uint8_t plane = 1; plane < (number_of_planes() + 1); plane++) {
-					if ((_selected_planes & (1 << (plane - 1))) == 0) {
+				for (uint8_t plane = 0; plane < number_of_planes(); plane++) {
+					if ((_selected_planes & (1 << plane)) == 0) {
 						continue;
 					}
 
+					size_t plane_offset = (native_height * native_width * plane);
+					size_t current_pixel = (x + xline + ((y + yline) * native_width)) + plane_offset;
+
 					// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide 
 					// with another sprite or are clipped by the bottom of the screen
-					if (px_states[current_pixel * plane] == 1 && !collision_in_row) {
+					if (px_states[current_pixel] == 1 && !collision_in_row) {
 						if (!collision_in_row) {
 							registers[0xF]++;
 						}
@@ -80,7 +81,7 @@ void XOChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 						collision_in_row = true;
 					}
 
-					px_states[current_pixel * plane] ^= 1;
+					px_states[current_pixel] ^= 1;
 				}
 			}
 		}
@@ -128,32 +129,33 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 		// if the x position of a pixel is off screen, stop drawing
 		for (uint xline = 0; xline < draw_width && (x + xline) < native_width; xline++) {
 
-			size_t current_pixel = (x + xline + (current_y_pos * native_width));
-
 			// sets pixels in each selected plane
-			for (uint8_t plane = 1; plane < (number_of_planes() + 1); plane++) {
-				if ((_selected_planes & (1 << (plane - 1))) == 0) {
+			for (uint8_t plane = 0; plane < number_of_planes(); plane++) {
+				if ((_selected_planes & (1 << plane)) == 0) {
 					continue;
 				}
 
+				size_t plane_offset = (native_height * native_width * plane);
+				size_t current_pixel = (x + xline + (current_y_pos * native_width)) + plane_offset;
+
 				if ((pixels & (0x8000 >> xline)) != 0) {
 					// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
-					if (px_states[current_pixel * plane] == 1) {
+					if (px_states[current_pixel] == 1) {
 						registers[0xF] = 1;
 					}
 
 					if (xline % 2 == 0) {
-						px_states[current_pixel * plane] ^= 1;
+						px_states[current_pixel] ^= 1;
 					} else {
 						// copying the state of the previous equated XOR'd pixel to the
 						// right of it thus upscaling it horizontally to 2x1 on-screen pixels
-						px_states[current_pixel * plane] = px_states[(current_pixel - 1) * plane];
+						px_states[current_pixel] = px_states[(current_pixel - 1)];
 					}
 				}
 
 				// upscaling current on-screen pixel vertically to 1x2 on-screen pixels
 				if (((current_y_pos + 1) < native_height)) {
-					px_states[(current_pixel + native_width) * plane] = px_states[current_pixel * plane];
+					px_states[(current_pixel + native_width)] = px_states[current_pixel];
 				}
 			}
 		}
@@ -174,7 +176,7 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 		case 0x0000:
 
 			// Scroll display N pixels up; in low resolution mode, N/2 pixels
-			if (sub_opcode == 0xB0) {
+			if ((sub_opcode & 0xFF0) == 0xD0) {
 				scroll_screen(ScrollDirection::UP, low_byte & 0xF);
 
 			// Scroll display N pixels down; in low resolution mode, N/2 pixels

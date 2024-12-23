@@ -75,11 +75,12 @@ bool Chip8::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& V
 		} else if (opcode == 0xF000) {
 			is_running = false;
 			
+		// THIS MODIFIED BEHAVIOR IS A MYTH BASED ON FEEDBACK I GOT FROM DISCORD
 		// Modified instruction: FX1E - If the result of VX+I overflows set VF to 1
 		// There is one known game that depends on this modified behavior happening.
-		} else if (opcode & 0xF0FF == 0xF01E) {
-			index_reg += registers[VX_reg];
-			registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
+		// } else if (opcode & 0xF0FF == 0xF01E) {
+		// 	index_reg += registers[VX_reg];
+		// 	registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
 		} else {
 			return false;
 		}
