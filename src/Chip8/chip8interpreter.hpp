@@ -79,7 +79,7 @@ public:
 	// std::vector<uint8_t> px_states[(64 * 32) / 8] = {};
 	std::vector<uint8_t> px_states;
 
-	virtual uint8_t number_of_planes() { return (native_height * native_width) / px_states.size(); };
+	virtual uint8_t number_of_planes() { return px_states.size() / (native_height * native_width); };
 
 protected:
 

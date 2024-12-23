@@ -12,19 +12,18 @@
 // The audio pattern buffer is loaded when F002 is called. Subsequent rewrites of the memory that I pointed to at that time are not reflected in the buffer.
 // The playback offset of the audio pattern buffer only resets when the sound timer reaches 0 (either by itself, or by being set explicitly).
 XOChip::XOChip() :
-	SuperChipInterpreter("XO Chip" , Chip8Type::XO, 600)
+	SuperChipInterpreter("XO Chip" , Chip8Type::XO, 1)
 {
 	Chip8Interpreter::wait_for_display_update = false;
 
 	// default ONLY for XO-chip
 	_selected_planes = 1;
 
-	px_states.resize(native_width * native_height * DEFAULT_TOTAL_DRAWING_PLANES);
+	px_states.resize(static_cast<size_t>(native_height * native_width * DEFAULT_TOTAL_DRAWING_PLANES));
 }
 
 void XOChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 {
-	printf("test\n");
 	// Reset register VF
 	registers[0xF] = 0;
 
@@ -98,8 +97,6 @@ void XOChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 
 void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 {
-	printf("test\n");
-
 	// low-resolution mode (64x32), even though the application is suppose to emulate that the
 	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
 	// each pixel is represented by 2x2 on-screen pixels.
@@ -252,8 +249,6 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 			return true;
 
 		case 0xD000:
-
-			printf("test\n");
 			if ((low_byte & 0x0F) == 0) {
 				update_gfx(registers[VX_reg], registers[VY_reg], (_high_res_mode_en ? 16 : 8));
 			} else {
@@ -266,12 +261,12 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 
 			// F000 NNNN: Load I with 16-bit address NNNN
 			if (sub_opcode == 0x000) {
-				index_reg = memory[program_ctr + 1];
+				index_reg = memory[program_ctr + 2] + memory[program_ctr + 3];
 				skip_instruction();
 			}
 
 			// FN01: Select drawing planes by their corresponding bitmasks (0 for no planes)
-			// There is only suppose to be two drawing planes but 
+			// There is only suppose to be two drawing planes but there is techically 2 extra unused plane bitmasks 4 and thus the potiental to have 16 color applications
 			if (low_byte == 0x01) {
 
 				_selected_planes = VX_reg;
@@ -348,6 +343,7 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 
 void XOChip::skip_instruction()
 {
+	// Skip instructions will skip over the entire double-wide F000 NNNN instruction.
 	uint16_t next_opcode = (static_cast<uint16_t>(memory[program_ctr + 2]) << 8) + memory[program_ctr + 3];
-	program_ctr = (next_opcode == 0xF000) ? 4 : 2;
+	program_ctr += ((next_opcode == 0xF000) ? 4 : 2);
 };

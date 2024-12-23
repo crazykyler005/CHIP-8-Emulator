@@ -292,7 +292,7 @@ void MenuBar::display_file_load_window()
 
 			if (_chip8_ptr->load_program(filePathName)) {
 				_program_name = fileDialog.GetCurrentFileName();
-				SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->INTERPRETER_NAME + "Emulator - " + fileDialog.GetCurrentFileName()).c_str());
+				SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->INTERPRETER_NAME + " Emulator - " + fileDialog.GetCurrentFileName()).c_str());
 
 				if (_chip8_ptr->is_running) {
 					_parent_window.stop_game_loop();

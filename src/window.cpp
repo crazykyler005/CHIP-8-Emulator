@@ -80,18 +80,29 @@ void Window::switch_interpreter(Chip8Type type)
 
 	std::lock_guard<std::mutex> lock(mtx);
 
-	if (type < Chip8Type::SUPER_1p0) {
-		_chip8_ptr = std::make_shared<Chip8>(type);
-	}  else if (type < Chip8Type::SUPER_MODERN) {
-		_chip8_ptr = std::make_shared<SuperChipLegacy>(type);
-	} else if (type == Chip8Type::SUPER_MODERN) {
-		_chip8_ptr = std::make_shared<SuperChipModern>();
-	} else {
-		_chip8_ptr = std::make_shared<XOChip>();
-	}
-
+	// need to first nullify the shared pointer references so an objects destructor doesn't modify any changes made by the new objects constructor
+	_chip8_ptr = nullptr;
 	m_menubar->set_chip8_pointer(nullptr);
 	screen.set_chip8_pointer(nullptr);
+
+	switch (type) {
+        case Chip8Type::ORIGINAL:
+		case Chip8Type::AMIGA_CHIP8:
+			_chip8_ptr = std::make_shared<Chip8>(type);
+            break;
+        case Chip8Type::SUPER_1p0:
+        case Chip8Type::SUPER_1p1:
+            _chip8_ptr = std::make_shared<SuperChipLegacy>(type);
+            break;
+        case Chip8Type::SUPER_MODERN:
+            _chip8_ptr = std::make_shared<SuperChipModern>();
+            break;
+        case Chip8Type::XO:
+            _chip8_ptr = std::make_shared<XOChip>();
+            break;
+        default:
+            throw std::invalid_argument("Invalid Chip8Type");
+    }
 
 	m_menubar->set_chip8_pointer(_chip8_ptr);
 	screen.set_chip8_pointer(_chip8_ptr);
@@ -254,7 +265,7 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 
 			_chip8_ptr->is_paused = true;
 		} else if (char_pressed == SDLK_r) {
-			_chip8_ptr->reset();
+			m_menubar->on_menu_file_reset();
 
 		// run one instruction at a time
 		} else if (char_pressed == SDLK_RIGHT) {

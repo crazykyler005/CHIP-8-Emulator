@@ -103,7 +103,7 @@ void Chip8Interpreter::run_instruction() {
 	// printf("opcode: %x, i: %d, pc: %d, reg[vx]: %d, VX_reg: %d\n", opcode, index_reg, program_ctr, registers[VX_reg], VX_reg);
 
 	// DXYN is the slowest command to run so to emulate this we wait until the next frame the run the next instruction
-	if (wait_for_display_update && draw_flag) {
+	if (Chip8Interpreter::wait_for_display_update && draw_flag) {
 		return;
 	}
 

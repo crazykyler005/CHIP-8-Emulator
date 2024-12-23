@@ -1,7 +1,7 @@
 #include "superChipModern.hpp"
 
 SuperChipModern::SuperChipModern() :
-	SuperChipInterpreter("Superchip Modern", Chip8Type::SUPER_MODERN, 1800)
+	SuperChipInterpreter("Superchip Modern", Chip8Type::SUPER_MODERN, 1)
 {
 	Chip8Interpreter::wait_for_display_update = false;
 	_user_flag_registers.resize(16);
