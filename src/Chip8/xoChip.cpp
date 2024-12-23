@@ -195,11 +195,11 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 			// 00FE and 00FF, which switch between low and high resolution, will clear the screen as well.
 			} else if (sub_opcode == 0xFE) {
 				_high_res_mode_en = false;
-				//memset(px_states.data(), 0, px_states.size());
+				memset(px_states.data(), 0, px_states.size());
 
 			} else if (sub_opcode == 0xFF) {
 				_high_res_mode_en = true;
-				//memset(px_states.data(), 0, px_states.size());
+				memset(px_states.data(), 0, px_states.size());
 				
 			} else {
 				return false;
@@ -224,31 +224,6 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 			}
 
 			break;
-
-		case 0x8000:
-			// Shifts VX to the right by 1, then stores the least significant bit of VX prior to the shift into VF.
-			if ((low_byte & 0xF) == 6) {
-				auto previous_VX = registers[VX_reg];
-
-				registers[VX_reg] >>= 1;
-				registers[0xF] = previous_VX & 0x1;
-
-			// Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset.
-			} else if ((low_byte & 0xF) == 0xE) {
-				auto previous_VX = registers[VX_reg];
-
-				registers[VX_reg] <<= 1;
-				registers[0xF] = (previous_VX & 0x80) ? 1 : 0;
-			} else {
-				return false;
-			}
-
-			break;
-
-		case 0xB000: // PC = VX + NNN
-			// CHIP-48 and legacy SUPER-CHIP version (possible bug)
-			program_ctr = registers[VX_reg] + sub_opcode;
-			return true;
 
 		case 0xD000:
 			if ((low_byte & 0x0F) == 0) {

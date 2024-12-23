@@ -86,7 +86,8 @@ void SuperChipInterpreter::scroll_screen(ScrollDirection direction, uint8_t px_s
 		return;
 	}
 
-	if (!_high_res_mode_en && (_type == Chip8Type::SUPER_MODERN)) {
+	// xo or modern super chip
+	if (!_high_res_mode_en && (_type <= Chip8Type::SUPER_MODERN)) {
 		px_shift *= 2;
 	}
 
