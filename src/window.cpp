@@ -86,23 +86,23 @@ void Window::switch_interpreter(Chip8Type type)
 	screen.set_chip8_pointer(nullptr);
 
 	switch (type) {
-        case Chip8Type::ORIGINAL:
+		case Chip8Type::ORIGINAL:
 		case Chip8Type::AMIGA_CHIP8:
 			_chip8_ptr = std::make_shared<Chip8>(type);
-            break;
-        case Chip8Type::SUPER_1p0:
-        case Chip8Type::SUPER_1p1:
-            _chip8_ptr = std::make_shared<SuperChipLegacy>(type);
-            break;
-        case Chip8Type::SUPER_MODERN:
-            _chip8_ptr = std::make_shared<SuperChipModern>();
-            break;
-        case Chip8Type::XO:
-            _chip8_ptr = std::make_shared<XOChip>();
-            break;
-        default:
-            throw std::invalid_argument("Invalid Chip8Type");
-    }
+			break;
+		case Chip8Type::SUPER_1p0:
+		case Chip8Type::SUPER_1p1:
+			_chip8_ptr = std::make_shared<SuperChipLegacy>(type);
+			break;
+		case Chip8Type::SUPER_MODERN:
+			_chip8_ptr = std::make_shared<SuperChipModern>();
+			break;
+		case Chip8Type::XO:
+			_chip8_ptr = std::make_shared<XOChip>();
+			break;
+		default:
+			throw std::invalid_argument("Invalid Chip8Type");
+	}
 
 	m_menubar->set_chip8_pointer(_chip8_ptr);
 	screen.set_chip8_pointer(_chip8_ptr);

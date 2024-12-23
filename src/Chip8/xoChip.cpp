@@ -12,7 +12,7 @@
 // The audio pattern buffer is loaded when F002 is called. Subsequent rewrites of the memory that I pointed to at that time are not reflected in the buffer.
 // The playback offset of the audio pattern buffer only resets when the sound timer reaches 0 (either by itself, or by being set explicitly).
 XOChip::XOChip() :
-	SuperChipInterpreter("XO Chip" , Chip8Type::XO, 1)
+	SuperChipInterpreter("XO Chip" , Chip8Type::XO, 1800)
 {
 	Chip8Interpreter::wait_for_display_update = false;
 
@@ -219,6 +219,8 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 				for (uint8_t i = VX_reg; i < VY_reg; i++) {
 					registers[i] = memory[index_reg + i];
 				}
+			} else {
+				return false;
 			}
 
 			break;
@@ -263,11 +265,10 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 			if (sub_opcode == 0x000) {
 				index_reg = memory[program_ctr + 2] + memory[program_ctr + 3];
 				skip_instruction();
-			}
 
 			// FN01: Select drawing planes by their corresponding bitmasks (0 for no planes)
 			// There is only suppose to be two drawing planes but there is techically 2 extra unused plane bitmasks 4 and thus the potiental to have 16 color applications
-			if (low_byte == 0x01) {
+			} else if (low_byte == 0x01) {
 
 				_selected_planes = VX_reg;
 
@@ -284,17 +285,15 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 				// if ((px_states.size() / (native_height * native_width)) < last_plane ) {
 				// 	px_states.resize(native_height * native_width * last_plane);
 				// }
-			}
 
 			// F002: Store 16 bytes in audio pattern buffer, starting at I, to be played by the sound buzzer
-			if (low_byte == 0x02) {
+			} else if (low_byte == 0x02) {
 				// for (uint8_t i = 0; i < 16; i++) {
 				// 	_audio_buffer[i] = memory[index_reg + i];
 				// }
-			}
 
 			// A key press is awaited, and then stored in VX (blocking operation, all instruction halted until next key event)
-			if (sub_opcode == 0x00A) {
+			} else if (sub_opcode == 0x00A) {
 				bool key_pressed = false;
 
 				for (uint8_t i = 0; i < keys.size(); i++) {
@@ -313,6 +312,10 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 			} else if (low_byte == 0x30) {
 				index_reg = registers[VX_reg] * 10 + sizeof(fontset);
 
+			// FX3A: Set the pitch register to the value in VX.
+			} else if (low_byte == 0x3A) {
+				_pitch_reg = registers[VX_reg];
+
 			} else if (low_byte == 0x75) {
 				for (uint8_t i = 0; i <= VX_reg; i++) {
 					_user_flag_registers[i] = registers[i];
@@ -322,10 +325,6 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 				for (uint8_t i = 0; i <= VX_reg; i++) {
 					registers[i] = _user_flag_registers[i];
 				}
-
-			// FX3A: Set the pitch register to the value in VX.
-			} else if (low_byte == 0x3A) {
-				_pitch_reg = registers[VX_reg];
 
 			} else {
 				return false;
