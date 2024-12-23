@@ -175,8 +175,21 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 	{
 		case 0x0000:
 
+			if (opcode == 0x00E0) {
+
+				for (uint8_t plane = 0; plane < number_of_planes(); plane++) {
+					if ((_selected_planes & (1 << plane)) == 0) {
+						continue;
+					}
+
+					memset(px_states.data() + (native_height * native_width * plane), 0, native_height * native_width);
+					printf("cleared pixels in plane %d\n", (plane + 1));
+					
+					draw_flag = true;
+				}
+
 			// Scroll display N pixels up; in low resolution mode, N/2 pixels
-			if ((sub_opcode & 0xFF0) == 0xD0) {
+			} else if ((sub_opcode & 0xFF0) == 0xD0) {
 				scroll_screen(ScrollDirection::UP, low_byte & 0xF);
 
 			// Scroll display N pixels down; in low resolution mode, N/2 pixels
