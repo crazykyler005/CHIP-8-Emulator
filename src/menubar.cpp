@@ -32,13 +32,13 @@ void MenuBar::add_file_menu()
 {
 	if (ImGui::BeginMenu("File"))
 	{
-		if (ImGui::MenuItem("Load", "Ctrl+O")) {
+		if (ImGui::MenuItem("Load", "Ctrl+o")) {
 			if (!fileDialog.IsOpened()) {
 				fileDialog.OpenDialog("ChooseFileDlgKey", "Choose File", ".ch8,.txt,.*");
 			}
 		}
 
-		if (ImGui::MenuItem("Reset", NULL, false, _chip8_ptr->is_running)) {
+		if (ImGui::MenuItem("Reset", "Ctrl-r", false, _chip8_ptr->is_running)) {
 			on_menu_file_reset();
 		}
 
@@ -215,6 +215,10 @@ void MenuBar::add_intrepreter_menu()
 
 void MenuBar::on_menu_file_reset()
 {
+	if (!_chip8_ptr->is_running) {
+		return;
+	}
+
 	_parent_window.stop_game_loop();
 	_chip8_ptr->reset();
 	_parent_window.start_game_loop();
