@@ -35,7 +35,7 @@ void SuperChipInterpreter::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_heigh
 	{
 		uint16_t pixels = 0;
 
-		// Fetch the pixels from the memory starting at location I
+		// Fetch the sprite pixels from the memory starting at location I
 		if (draw_width != 16) {
 			pixels = (static_cast<uint16_t>(memory[index_reg + yline]) << 8);
 		} else {
@@ -58,10 +58,7 @@ void SuperChipInterpreter::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_heigh
 				// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide 
 				// with another sprite or are clipped by the bottom of the screen
 				if (px_states[current_pixel] == 1 && !collision_in_row) {
-					if (!collision_in_row) {
-						registers[0xF]++;
-					}
-
+					registers[0xF]++;
 					collision_in_row = true;
 				}
 
@@ -70,7 +67,7 @@ void SuperChipInterpreter::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_heigh
 		}
 	}
 
-	if ((_type == Chip8Type::SUPER_MODERN) && (registers[0xF] > 0)) {
+	if ((_type != Chip8Type::SUPER_1p1) && (registers[0xF] > 0)) {
 		registers[0xF] = 1;
 	}
 

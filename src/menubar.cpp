@@ -34,7 +34,7 @@ void MenuBar::add_file_menu()
 	{
 		if (ImGui::MenuItem("Load", "Ctrl+o")) {
 			if (!fileDialog.IsOpened()) {
-				fileDialog.OpenDialog("ChooseFileDlgKey", "Choose File", ".ch8,.txt,.*");
+				fileDialog.OpenDialog("ChooseFileDlgKey", "Choose File", ".ch8,.xo8,.txt,.*");
 			}
 		}
 

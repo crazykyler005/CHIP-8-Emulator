@@ -51,16 +51,11 @@ void XOChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 			pixels = (static_cast<uint16_t>(memory[index_reg + (yline * 2)]) << 8) + memory[index_reg + (yline * 2) + 1];
 		}
 
-		bool collision_in_row = false;
-
 		for (uint8_t xline = 0; xline < draw_width; xline++) {
 			if ((pixels & (0x8000 >> xline)) != 0) {
 
-				// if the x or y position of the pixel is off the screen, stop drawing
-				if (((y + yline) >= native_height) || ((x + xline) >= native_width)) {
-					registers[0xF]++;
-					break;
-				}
+				uint8_t wrapped_y = (y + yline) % native_height;
+				uint8_t wrapped_x = (x + xline) % native_width;
 
 				// sets pixels in each selected plane
 				for (uint8_t plane = 0; plane < number_of_planes(); plane++) {
@@ -69,26 +64,18 @@ void XOChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 					}
 
 					size_t plane_offset = (native_height * native_width * plane);
-					size_t current_pixel = (x + xline + ((y + yline) * native_width)) + plane_offset;
+					size_t current_pixel = (wrapped_x + (wrapped_y * native_width)) + plane_offset;
 
 					// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide 
 					// with another sprite or are clipped by the bottom of the screen
-					if (px_states[current_pixel] == 1 && !collision_in_row) {
-						if (!collision_in_row) {
-							registers[0xF]++;
-						}
-
-						collision_in_row = true;
+					if (px_states[current_pixel] == 1) {
+						registers[0xF] = 1;
 					}
 
 					px_states[current_pixel] ^= 1;
 				}
 			}
 		}
-	}
-
-	if (registers[0xF] > 0) {
-		registers[0xF] = 1;
 	}
 
 	draw_flag = true;
@@ -101,33 +88,45 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 	// low-resolution mode (64x32), even though the application is suppose to emulate that the
 	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
 	// each pixel is represented by 2x2 on-screen pixels.
+	bool large_sprite = (sprite_height == 16);
 
 	const uint8_t pixel_size = 2;
-	const uint8_t sprite_width = 8;
-	const uint8_t draw_width = 16;
+	uint8_t sprite_width = large_sprite ? sprite_height : 8;
+	uint8_t draw_width = large_sprite ? 32 : 16;
 
 	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
 	x = (x * 2) % native_width;
 	y = (y * 2) % native_height;
 
 	// if the y position of the pixel is off screen, stop drawing
-	for (uint8_t yline = 0; yline < (sprite_height * 2) && (y + yline) < native_height; yline += pixel_size)
+	for (uint8_t yline = 0; yline < (sprite_height * 2); yline += pixel_size)
 	{
-		uint8_t current_y_pos = y + yline;
-		uint16_t pixels = 0;
+		uint32_t pixels = 0;
 
 		// if low-res, each sprite has a width of 8px so only a single byte from mem is pulled per row of pixels.
 		for (uint8_t px = 0; px < sprite_width; px++) {
-			// Fetch the pixels from the memory starting at location I
-			if ((memory[index_reg + (yline / 2)] & (1 << px))) {
-				// 8px sprite row is upscaled to 16px
-				// ex: 10111101 -> 11001111 11110011
-				pixels = (0b11 << (px * 2)) | pixels;
+
+			for (uint8_t px = 0; px < sprite_width; px++) {
+				pixels <<= pixel_size;
+
+				// Fetch the pixels from the memory starting at location I
+				uint8_t current_byte = memory[index_reg + (px / 8) + (large_sprite ? yline : yline / 2)];
+        		uint8_t mask = 0b10000000 >> (px % 8);
+				
+				if (current_byte & mask) {
+					// 8px sprite row is upscaled to 16px
+					// ex: 10111101 -> 11001111 11110011
+					pixels |= 0b11;
+				}
 			}
 		}
 
+
 		// if the x position of a pixel is off screen, stop drawing
-		for (uint xline = 0; xline < draw_width && (x + xline) < native_width; xline++) {
+		for (uint xline = 0; xline < draw_width; xline++) {
+
+			uint8_t wrapped_y = (y + yline) % native_height;
+			uint8_t wrapped_x = (x + xline) % native_width;
 
 			// sets pixels in each selected plane
 			for (uint8_t plane = 0; plane < number_of_planes(); plane++) {
@@ -136,9 +135,9 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 				}
 
 				size_t plane_offset = (native_height * native_width * plane);
-				size_t current_pixel = (x + xline + (current_y_pos * native_width)) + plane_offset;
+				size_t current_pixel = (wrapped_x + (wrapped_y * native_width)) + plane_offset;
 
-				if ((pixels & (0x8000 >> xline)) != 0) {
+				if ((pixels & (0x1 << ((draw_width - 1) - xline))) != 0) {
 					// Check if the pixel on the display is set to 1. If it is set, we need to register the collision by setting the VF register
 					if (px_states[current_pixel] == 1) {
 						registers[0xF] = 1;
@@ -154,9 +153,7 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 				}
 
 				// upscaling current on-screen pixel vertically to 1x2 on-screen pixels
-				if (((current_y_pos + 1) < native_height)) {
-					px_states[(current_pixel + native_width)] = px_states[current_pixel];
-				}
+				px_states[current_pixel + native_width] = px_states[current_pixel];
 			}
 		}
 	}
@@ -184,7 +181,7 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 
 					memset(px_states.data() + (native_height * native_width * plane), 0, native_height * native_width);
 					printf("cleared pixels in plane %d\n", (plane + 1));
-					
+
 					draw_flag = true;
 				}
 
@@ -210,10 +207,14 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 			// 00FE and 00FF, which switch between low and high resolution, will clear the screen as well.
 			} else if (sub_opcode == 0xFE) {
 				_high_res_mode_en = false;
+
+				// clearing screen in all planes
 				memset(px_states.data(), 0, px_states.size());
 
 			} else if (sub_opcode == 0xFF) {
 				_high_res_mode_en = true;
+
+				// clearing screen in all planes
 				memset(px_states.data(), 0, px_states.size());
 				
 			} else {
@@ -242,7 +243,7 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 
 		case 0xD000:
 			if ((low_byte & 0x0F) == 0) {
-				update_gfx(registers[VX_reg], registers[VY_reg], (_high_res_mode_en ? 16 : 8));
+				update_gfx(registers[VX_reg], registers[VY_reg], 16);
 			} else {
 				update_gfx(registers[VX_reg], registers[VY_reg], static_cast<uint8_t>(opcode & 0xF));
 			}
