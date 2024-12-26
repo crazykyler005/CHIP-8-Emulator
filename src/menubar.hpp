@@ -48,7 +48,7 @@ private:
 	void on_menu_state_load(int i);
 	void on_menu_update_resolution(int i);
 
-	void display_ips_configure_window();
+	void display_ipf_configure_window();
 	void display_file_load_window();
 	
 	ImGuiFileDialog fileDialog;

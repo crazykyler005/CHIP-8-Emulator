@@ -16,6 +16,6 @@ private:
 	// TODO: Define this
 	void interpret_additional_data() override;
 
-	inline static const uint16_t SC_V1p0_OPS = 900;
-	inline static const uint16_t SC_V1p1_OPS = 1800;
+	inline static const uint16_t SC_V1p0_OPF = 15;
+	inline static const uint16_t SC_V1p1_OPF = 30;
 };

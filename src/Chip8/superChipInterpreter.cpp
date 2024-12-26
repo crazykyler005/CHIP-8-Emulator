@@ -1,7 +1,7 @@
 #include "superChipInterpreter.hpp"
 
-SuperChipInterpreter::SuperChipInterpreter(std::string name, Chip8Type type, uint16_t ops) : 
-	Chip8Interpreter(name, type, 128, 64, 16, ops)
+SuperChipInterpreter::SuperChipInterpreter(std::string name, Chip8Type type, uint16_t opf) : 
+	Chip8Interpreter(name, type, 128, 64, 16, opf)
 {
 	_selected_planes = 0b01;
 

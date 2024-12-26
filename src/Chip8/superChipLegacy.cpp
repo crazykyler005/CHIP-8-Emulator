@@ -1,13 +1,12 @@
 #include "superChipLegacy.hpp"
 
 SuperChipLegacy::SuperChipLegacy(Chip8Type type) : 
-	SuperChipInterpreter("Superchip Legacy", type, (type == Chip8Type::SUPER_1p0) ? SC_V1p0_OPS : SC_V1p1_OPS)
+	SuperChipInterpreter("Superchip Legacy", type, (type == Chip8Type::SUPER_1p0) ? SC_V1p0_OPF : SC_V1p1_OPF)
 {
 	_selected_planes = 0b01;
 
 	// loading high res fontset into the designated position in memory (81-240)
 	std::copy(std::begin(super_fontset), std::end(super_fontset), std::begin(memory) + sizeof(fontset));
-	opcodes_per_second = 1800;
 
 	increment_i = (_type != Chip8Type::SUPER_1p1);
 }
@@ -23,7 +22,7 @@ bool SuperChipLegacy::switch_type(Chip8Type type)
 	}
 
 	_type = type;
-	opcodes_per_second = (_type == Chip8Type::SUPER_1p0) ? SC_V1p0_OPS : SC_V1p1_OPS;
+	opcodes_per_frame = (_type == Chip8Type::SUPER_1p0) ? SC_V1p0_OPF : SC_V1p1_OPF;
 
 	increment_i = (_type != Chip8Type::SUPER_1p1);
 

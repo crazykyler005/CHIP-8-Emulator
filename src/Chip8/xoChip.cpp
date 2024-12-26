@@ -12,7 +12,7 @@
 // The audio pattern buffer is loaded when F002 is called. Subsequent rewrites of the memory that I pointed to at that time are not reflected in the buffer.
 // The playback offset of the audio pattern buffer only resets when the sound timer reaches 0 (either by itself, or by being set explicitly).
 XOChip::XOChip() :
-	SuperChipInterpreter("XO Chip" , Chip8Type::XO, 1800)
+	SuperChipInterpreter("XO Chip" , Chip8Type::XO, 1000)
 {
 	Chip8Interpreter::wait_for_display_update = false;
 

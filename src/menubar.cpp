@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <iostream>
 
-static bool display_ips_config = false;
+static bool display_ipf_config = false;
 
 MenuBar::MenuBar(std::shared_ptr<Chip8Interpreter> chip8_pointer, Window& parent_window)
 	: _chip8_ptr(chip8_pointer), _parent_window(parent_window)
@@ -24,7 +24,7 @@ void MenuBar::generate()
 		ImGui::EndMainMenuBar();
 	}
 
-	display_ips_configure_window();
+	display_ipf_configure_window();
 	display_file_load_window();
 }
 
@@ -118,7 +118,7 @@ void MenuBar::add_settings_menu()
 
 		if (ImGui::MenuItem("Set instructions per second", NULL, false, true))
         {
-			display_ips_config = true;
+			display_ipf_config = true;
         }
 
 		if (ImGui::BeginMenu("Colors Schemes"))
@@ -254,23 +254,23 @@ void MenuBar::on_menu_update_resolution(int i)
 	selected_resolution_multiplier = i;
 }
 
-void MenuBar::display_ips_configure_window()
+void MenuBar::display_ipf_configure_window()
 {
-	if (!display_ips_config) {
+	if (!display_ipf_config) {
 		return;
 	}
 
-	if (ImGui::Begin("Configure IPS", (bool*)nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
+	if (ImGui::Begin("Configure IPF", (bool*)nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
 	{
-		ImGui::Text("Type in a value between 1 and 2000");
+		ImGui::Text("Type in a value between 1 and 10000");
 
-		static char IPS_char_buff[5] = "700"; ImGui::InputText("IPS", IPS_char_buff, 32, ImGuiInputTextFlags_CharsDecimal);
+		static char IPF_char_buff[5] = "15"; ImGui::InputText("IPF", IPF_char_buff, 32, ImGuiInputTextFlags_CharsDecimal);
 		if (ImGui::Button("Submit", ImVec2(50,50))) {
-			auto new_IPS = atoi(IPS_char_buff);
+			auto new_IPF = atoi(IPF_char_buff);
 
-			if (0 < new_IPS <= 2000) {
-				_chip8_ptr->opcodes_per_second = new_IPS;
-				display_ips_config = false;
+			if (0 < new_IPF <= 10000) {
+				_chip8_ptr->opcodes_per_frame = new_IPF;
+				display_ipf_config = false;
 			}
 		}
 

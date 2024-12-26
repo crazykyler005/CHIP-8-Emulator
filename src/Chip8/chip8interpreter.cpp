@@ -10,8 +10,8 @@
 
 #include "chip8interpreter.hpp"
 
-Chip8Interpreter::Chip8Interpreter(std::string name, Chip8Type type, uint8_t width, uint8_t height, uint8_t sprite_width, uint16_t ops) :
-	INTERPRETER_NAME(name), native_width(width), native_height(height), opcodes_per_second(ops)
+Chip8Interpreter::Chip8Interpreter(std::string name, Chip8Type type, uint8_t width, uint8_t height, uint8_t sprite_width, uint16_t opf) :
+	INTERPRETER_NAME(name), native_width(width), native_height(height), opcodes_per_frame(opf)
 {
 	_type = type;
 

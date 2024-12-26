@@ -162,6 +162,7 @@ void Window::game_loop()
 {
 	auto fps = std::chrono::microseconds(get_microseconds_in_second() / _chip8_ptr->HZ_PER_SECOND);
 	auto start_time = std::chrono::steady_clock::now();
+	uint32_t instructions_ran = 0;
 
 	while (_chip8_ptr->is_running) {
 		if (_chip8_ptr->is_paused) {
@@ -176,38 +177,44 @@ void Window::game_loop()
 
 		_chip8_ptr->run_instruction();
 
-		if (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time) >= fps) {
-
-			std::lock_guard<std::mutex> lock(mtx);
-
-			start_time = std::chrono::steady_clock::now();
-			_chip8_ptr->countdown_timers();
-
-			if (_chip8_ptr->play_sfx) {
-				_chip8_ptr->play_sfx = false;
-
-				std::thread sound_worker(&Window::play_sound, this);
-				sound_worker.detach();
-			}
-
-			if (_chip8_ptr->draw_flag) {
-				_chip8_ptr->draw_flag = false;
-				update_texture = true;
-			}
+		if (++instructions_ran != _chip8_ptr->opcodes_per_frame) {
+			continue;
 		}
 
-		sleep_thread_microseconds(get_microseconds_in_second() / _chip8_ptr->opcodes_per_second);
+		auto time_passed = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time);
+
+		if (std::chrono::duration_cast<std::chrono::microseconds>(time_passed) < fps) {
+			auto sleep_duration = std::chrono::duration_cast<std::chrono::microseconds>(fps - time_passed).count();
+			sleep_thread_microseconds(sleep_duration);
+		}
+
+		std::lock_guard<std::mutex> lock(mtx);
+
+		instructions_ran = 0;
+		start_time = std::chrono::steady_clock::now();
+		_chip8_ptr->countdown_timers();
+
+		if (_chip8_ptr->play_sfx) {
+			_chip8_ptr->play_sfx = false;
+
+			std::thread sound_worker(&Window::play_sound, this);
+			sound_worker.detach();
+		}
+
+		if (_chip8_ptr->draw_flag) {
+			_chip8_ptr->draw_flag = false;
+			update_texture = true;
+		}
 	}
 }
 
 void Window::run_single_instruction() {
 	static uint16_t ran_instructions = 0;
-	uint16_t max_instruction_per_frame = (_chip8_ptr->opcodes_per_second / _chip8_ptr->HZ_PER_SECOND);
 
 	// _chip8_ptr->print_current_opcode();
 	_chip8_ptr->run_instruction();
 
-	if (++ran_instructions >= max_instruction_per_frame) {
+	if (++ran_instructions >= _chip8_ptr->opcodes_per_frame) {
 		_chip8_ptr->countdown_timers();
 		ran_instructions = 0;
 	}
@@ -297,7 +304,7 @@ void Window::stop_game_loop() {
 	_chip8_ptr->is_running = false;
 
 	// wait for game loop thread to finish
-	std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_second)) * 2));
+	std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_frame))));
 }
 
 void adjust_volume(uint8_t* wav_buffer, uint32_t wav_length, SDL_AudioSpec* wav_spec, float volume) {

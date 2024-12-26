@@ -2,7 +2,7 @@
 #include "chip8.hpp"
 
 Chip8::Chip8(Chip8Type type) :
-	Chip8Interpreter("Chip-8", type, 64, 32, 8, 700)
+	Chip8Interpreter("Chip-8", type, 64, 32, 8, 15)
 {
 	_selected_planes = 0b01;
 }

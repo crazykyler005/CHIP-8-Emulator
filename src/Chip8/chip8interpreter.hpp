@@ -32,7 +32,7 @@ struct key_info {
 };
 
 public:
-	Chip8Interpreter(std::string name, Chip8Type type, uint8_t width, uint8_t height, uint8_t sprite_width, uint16_t ops);
+	Chip8Interpreter(std::string name, Chip8Type type, uint8_t width, uint8_t height, uint8_t sprite_width, uint16_t opf);
 	virtual ~Chip8Interpreter() = default;
 
 	const uint8_t native_width;
@@ -57,7 +57,7 @@ public:
 	virtual void countdown_timers();
 
 	inline static const time_t HZ_PER_SECOND = 60;
-	uint16_t opcodes_per_second = 700;
+	uint32_t opcodes_per_frame = 15;
 
 	const std::string INTERPRETER_NAME;
 

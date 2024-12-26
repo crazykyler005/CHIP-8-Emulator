@@ -12,7 +12,7 @@ enum class ScrollDirection : uint8_t {
 class SuperChipInterpreter : public Chip8Interpreter {
 
 public:
-	SuperChipInterpreter(std::string name, Chip8Type type, uint16_t ops);
+	SuperChipInterpreter(std::string name, Chip8Type type, uint16_t opf);
 	~SuperChipInterpreter() override = default;  // Default destructor
 
 protected:
