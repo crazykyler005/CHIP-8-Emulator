@@ -111,16 +111,15 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 
 				// Fetch the pixels from the memory starting at location I
 				uint8_t current_byte = memory[index_reg + (px / 8) + (large_sprite ? yline : yline / 2)];
-        		uint8_t mask = 0b10000000 >> (px % 8);
+        		uint8_t px_mask = 0b10000000 >> (px % 8);
 				
-				if (current_byte & mask) {
+				if (current_byte & px_mask) {
 					// 8px sprite row is upscaled to 16px
 					// ex: 10111101 -> 11001111 11110011
 					pixels |= 0b11;
 				}
 			}
 		}
-
 
 		// if the x position of a pixel is off screen, stop drawing
 		for (uint xline = 0; xline < draw_width; xline++) {
@@ -216,6 +215,7 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 
 				// clearing screen in all planes
 				memset(px_states.data(), 0, px_states.size());
+				is_paused = true;
 				
 			} else {
 				return false;
@@ -226,15 +226,35 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 		case 0x5000:
 			// Save VX..VY to memory starting at I; does not increment I
 			if ((low_byte & 0xF) == 2) {
-				for (uint8_t i = VX_reg; i < VY_reg; i++) {
-					memory[index_reg + i] = registers[i];
+				const uint8_t dist = std::abs(VX_reg - VY_reg) + 1;
+
+				if (VX_reg < VY_reg) {
+					for (uint8_t i = 0; i < dist; i++) {
+						memory[index_reg + i] = registers[VX_reg + i];
+					}
+				} else {
+					// Save to memory in reversed order
+					for (uint8_t i = 0; i < dist; i++) {
+						memory[index_reg + i] = registers[VX_reg - i];
+					}
 				}
 
 			// Load VX..VY from memory starting at I; does not increment I
 			} else if ((low_byte & 0xF) == 3) {
-				for (uint8_t i = VX_reg; i < VY_reg; i++) {
-					registers[i] = memory[index_reg + i];
+
+				const uint8_t dist = std::abs(VX_reg - VY_reg) + 1;
+
+				if (VX_reg < VY_reg) {
+					for (uint8_t i = 0; i < dist; i++) {
+						registers[VX_reg + i] = memory[index_reg + i];
+					}
+				} else {
+					// Load from memory in reversed order
+					for (uint8_t i = 0; i < dist; i++) {
+						registers[VX_reg - i] = memory[index_reg + i];
+					}
 				}
+
 			} else {
 				return false;
 			}
@@ -254,7 +274,7 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 
 			// F000 NNNN: Load I with 16-bit address NNNN
 			if (sub_opcode == 0x000) {
-				index_reg = memory[program_ctr + 2] + memory[program_ctr + 3];
+				index_reg = static_cast<uint16_t>(memory[program_ctr + 2] << 8 | memory[program_ctr + 3]);
 				skip_instruction();
 
 			// FN01: Select drawing planes by their corresponding bitmasks (0 for no planes)
@@ -334,6 +354,6 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 void XOChip::skip_instruction()
 {
 	// Skip instructions will skip over the entire double-wide F000 NNNN instruction.
-	uint16_t next_opcode = (static_cast<uint16_t>(memory[program_ctr + 2]) << 8) + memory[program_ctr + 3];
+	uint16_t next_opcode = static_cast<uint16_t>(memory[program_ctr + 2] << 8 | memory[program_ctr + 3]);
 	program_ctr += ((next_opcode == 0xF000) ? 4 : 2);
 };

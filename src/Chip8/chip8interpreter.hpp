@@ -88,7 +88,7 @@ protected:
 	// 0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
 	// 0x200-0xFFF - Program ROM and work RAM
 
-	inline static const uint16_t MEMORY_SIZE = 4096; //0x1000
+	inline static const uint32_t MEMORY_SIZE = 0x10000; //0x1000
 
 	// most programs written for the original system begin at memory location
 	// 0x200 because the interpreter occupied the first 512 bytes

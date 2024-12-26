@@ -204,7 +204,7 @@ void Window::run_single_instruction() {
 	static uint16_t ran_instructions = 0;
 	uint16_t max_instruction_per_frame = (_chip8_ptr->opcodes_per_second / _chip8_ptr->HZ_PER_SECOND);
 
-	_chip8_ptr->print_current_opcode();
+	// _chip8_ptr->print_current_opcode();
 	_chip8_ptr->run_instruction();
 
 	if (++ran_instructions >= max_instruction_per_frame) {
