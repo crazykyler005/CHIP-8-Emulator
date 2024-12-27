@@ -167,17 +167,11 @@ void Window::game_loop()
 	while (_chip8_ptr->is_running) {
 		if (_chip8_ptr->is_paused) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-			if (!is_run_one_instruction) {
-				continue;
-			}
-
-			is_run_one_instruction = false;
 		}
 
 		_chip8_ptr->run_instruction();
 
-		if (++instructions_ran != _chip8_ptr->opcodes_per_frame) {
+		if (++instructions_ran < _chip8_ptr->opcodes_per_frame) {
 			continue;
 		}
 

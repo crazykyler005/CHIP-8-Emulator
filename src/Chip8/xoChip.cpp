@@ -171,94 +171,114 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 	{
 		case 0x0000:
 
-			if (opcode == 0x00E0) {
+			switch (sub_opcode)
+			{
+				// Scroll display N pixels down; in low resolution mode, N/2 pixels
+				case 0xC0: case 0xC1: case 0xC2: case 0xC3:
+				case 0xC4: case 0xC5: case 0xC6: case 0xC7:
+				case 0xC8: case 0xC9: case 0xCA: case 0xCB:
+				case 0xCC: case 0xCD: case 0xCE: case 0xCF:
+					scroll_screen(ScrollDirection::DOWN, low_byte & 0xF);
+					break;
 
-				for (uint8_t plane = 0; plane < number_of_planes(); plane++) {
-					if ((_selected_planes & (1 << plane)) == 0) {
-						continue;
+				// Scroll display N pixels up; in low resolution mode, N/2 pixels
+				case 0x00D0: case 0x00D1: case 0x00D2: case 0x00D3:
+				case 0x00D4: case 0x00D5: case 0x00D6: case 0x00D7:
+				case 0x00D8: case 0x00D9: case 0x00DA: case 0x00DB:
+				case 0x00DC: case 0x00DD: case 0x00DE: case 0x00DF:
+					scroll_screen(ScrollDirection::UP, low_byte & 0xF);
+					break;
+
+				// clear screen in selected plane
+				case 0xE0:
+					for (uint8_t plane = 0; plane < number_of_planes(); plane++) {
+						if ((_selected_planes & (1 << plane)) == 0) {
+							continue;
+						}
+
+						memset(px_states.data() + (native_height * native_width * plane), 0, native_height * native_width);
+						draw_flag = true;
 					}
+					break;
 
-					memset(px_states.data() + (native_height * native_width * plane), 0, native_height * native_width);
-					printf("cleared pixels in plane %d\n", (plane + 1));
+				// Scroll right by 4 pixels; in low resolution mode, 2 pixels
+				case 0xFB:
+					scroll_screen(ScrollDirection::RIGHT);
+					break;
 
-					draw_flag = true;
-				}
+				// Scroll left by 4 pixels; in low resolution mode, 2 pixels
+				case 0xFC:
+					scroll_screen(ScrollDirection::LEFT);
+					break;
 
-			// Scroll display N pixels up; in low resolution mode, N/2 pixels
-			} else if ((sub_opcode & 0xFF0) == 0xD0) {
-				scroll_screen(ScrollDirection::UP, low_byte & 0xF);
+				// Exit interpreter
+				case 0xFD:
+					is_running = false;
+					break;
 
-			// Scroll display N pixels down; in low resolution mode, N/2 pixels
-			} else if ((sub_opcode & 0xFF0) == 0xC0) {
-				scroll_screen(ScrollDirection::DOWN, low_byte & 0xF);
+				// 00FE and 00FF, which switch between low and high resolution, will clear the screen as well.
+				case 0xFE:
+					_high_res_mode_en = false;
 
-			// Scroll right by 4 pixels; in low resolution mode, 2 pixels
-			} else if (sub_opcode == 0xFB) {
-				scroll_screen(ScrollDirection::RIGHT);
+					// clearing screen in all planes
+					memset(px_states.data(), 0, px_states.size());
+					break;
 
-			// Scroll left by 4 pixels; in low resolution mode, 2 pixels
-			} else if (sub_opcode == 0xFC) {
-				scroll_screen(ScrollDirection::LEFT);
+				case 0xFF:
+					_high_res_mode_en = true;
 
-			} else if (sub_opcode == 0xFD) {
-				is_running = false;
-
-			// 00FE and 00FF, which switch between low and high resolution, will clear the screen as well.
-			} else if (sub_opcode == 0xFE) {
-				_high_res_mode_en = false;
-
-				// clearing screen in all planes
-				memset(px_states.data(), 0, px_states.size());
-
-			} else if (sub_opcode == 0xFF) {
-				_high_res_mode_en = true;
-
-				// clearing screen in all planes
-				memset(px_states.data(), 0, px_states.size());
-				is_paused = true;
+					// clearing screen in all planes
+					memset(px_states.data(), 0, px_states.size());
+					break;
 				
-			} else {
-				return false;
+				default:
+					return false;
 			}
-
 			break;
 
 		case 0x5000:
-			// Save VX..VY to memory starting at I; does not increment I
-			if ((low_byte & 0xF) == 2) {
-				const uint8_t dist = std::abs(VX_reg - VY_reg) + 1;
 
-				if (VX_reg < VY_reg) {
-					for (uint8_t i = 0; i < dist; i++) {
-						memory[index_reg + i] = registers[VX_reg + i];
+			switch (low_byte & 0xF)
+			{
+				// Save VX..VY to memory starting at I; does not increment I
+				case 0x2: 
+				{
+					const uint8_t dist = std::abs(VX_reg - VY_reg) + 1;
+
+					if (VX_reg < VY_reg) {
+						for (uint8_t i = 0; i < dist; i++) {
+							memory[index_reg + i] = registers[VX_reg + i];
+						}
+					} else {
+						// Save to memory in reversed order
+						for (uint8_t i = 0; i < dist; i++) {
+							memory[index_reg + i] = registers[VX_reg - i];
+						}
 					}
-				} else {
-					// Save to memory in reversed order
-					for (uint8_t i = 0; i < dist; i++) {
-						memory[index_reg + i] = registers[VX_reg - i];
-					}
+					break;
 				}
 
-			// Load VX..VY from memory starting at I; does not increment I
-			} else if ((low_byte & 0xF) == 3) {
+				// Load VX..VY from memory starting at I; does not increment I
+				case 0x3:
+				{
+					const uint8_t dist = std::abs(VX_reg - VY_reg) + 1;
 
-				const uint8_t dist = std::abs(VX_reg - VY_reg) + 1;
-
-				if (VX_reg < VY_reg) {
-					for (uint8_t i = 0; i < dist; i++) {
-						registers[VX_reg + i] = memory[index_reg + i];
+					if (VX_reg < VY_reg) {
+						for (uint8_t i = 0; i < dist; i++) {
+							registers[VX_reg + i] = memory[index_reg + i];
+						}
+					} else {
+						// Load from memory in reversed order
+						for (uint8_t i = 0; i < dist; i++) {
+							registers[VX_reg - i] = memory[index_reg + i];
+						}
 					}
-				} else {
-					// Load from memory in reversed order
-					for (uint8_t i = 0; i < dist; i++) {
-						registers[VX_reg - i] = memory[index_reg + i];
-					}
+					break;
 				}
 
-			} else {
-				return false;
+				default:
+					return false;
 			}
-
 			break;
 
 		case 0xD000:
@@ -282,20 +302,6 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 			} else if (low_byte == 0x01) {
 
 				_selected_planes = VX_reg;
-
-				// uint8_t last_plane = 0;
-				
-				// // grabbing the most significant bit
-				// for (uint8_t i = 3; i == 0; i--) {
-				// 	if (_selected_planes & (1 << i)) {
-				// 		last_plane = i + 1;
-				// 		break;
-				// 	}
-				// }
-
-				// if ((px_states.size() / (native_height * native_width)) < last_plane ) {
-				// 	px_states.resize(native_height * native_width * last_plane);
-				// }
 
 			// F002: Store 16 bytes in audio pattern buffer, starting at I, to be played by the sound buzzer
 			} else if (low_byte == 0x02) {

@@ -97,10 +97,11 @@ void MenuBar::add_settings_menu()
 		ImGui::MenuItem("Disable sound", NULL, &_chip8_ptr->sound_disabled);
 		ImGui::MenuItem("Pause", "Ctrl-p", &_chip8_ptr->is_paused);
 		ImGui::MenuItem("Display wait quirk", "", &_chip8_ptr->wait_for_display_update);
-		ImGui::MenuItem("Run single instruction", "Ctrl-RIGHT", 
-			&_parent_window.is_run_one_instruction, 
-			(_chip8_ptr->is_paused && _chip8_ptr->is_running)
-		);
+		
+		if (ImGui::MenuItem("Run single instruction", "Ctrl-RIGHT", 
+			false, (_chip8_ptr->is_paused && _chip8_ptr->is_running))) {
+			_parent_window.run_single_instruction();
+		}
 
 		if (ImGui::BeginMenu("Resolution"))
 		{

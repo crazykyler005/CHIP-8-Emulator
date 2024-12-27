@@ -79,7 +79,6 @@ public:
 	};
 
 	static inline uint8_t seletected_color_scheme = 0;
-	static inline bool is_run_one_instruction = false;
 
 private:
 	inline static const int MIN_WINDOW_WIDTH = 250;
