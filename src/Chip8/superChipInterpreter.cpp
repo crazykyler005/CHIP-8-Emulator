@@ -8,7 +8,7 @@ SuperChipInterpreter::SuperChipInterpreter(std::string name, Chip8Type type, uin
 	// loading high res fontset into the designated position in memory (81-240)
 	std::copy(std::begin(super_fontset), std::end(super_fontset), std::begin(memory) + sizeof(fontset));
 
-	increment_i = (_type != Chip8Type::SUPER_1p1);
+	_increment_i = (_type != Chip8Type::SUPER_1p1);
 
 	_user_flag_registers.resize(8);
 }

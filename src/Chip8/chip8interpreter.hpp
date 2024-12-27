@@ -10,8 +10,7 @@
 
 enum class Chip8Type : uint8_t {
 	ORIGINAL = 0,
-	AMIGA_CHIP8,
-	// CHIP48,
+	CHIP48,
 	SUPER_1p0,
 	SUPER_1p1,
 	SUPER_MODERN,
@@ -166,7 +165,7 @@ protected:
 
 	// Before the CHIP-8 interpreters CHIP48 and SUPER-CHIP (1970s - 1980s), the I register
 	// was incremented each time it stored or loaded one register. (I += X + 1).
-	bool increment_i = true;
+	bool _increment_i = true;
 	std::vector<uint8_t> additional_data;
 
 	virtual bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) { return false; };

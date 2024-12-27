@@ -87,7 +87,7 @@ void Window::switch_interpreter(Chip8Type type)
 
 	switch (type) {
 		case Chip8Type::ORIGINAL:
-		case Chip8Type::AMIGA_CHIP8:
+		case Chip8Type::CHIP48:
 			_chip8_ptr = std::make_shared<Chip8>(type);
 			break;
 		case Chip8Type::SUPER_1p0:

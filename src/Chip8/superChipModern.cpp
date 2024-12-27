@@ -6,7 +6,7 @@ SuperChipModern::SuperChipModern() :
 	Chip8Interpreter::wait_for_display_update = false;
 	_user_flag_registers.resize(16);
 
-	increment_i = false;
+	_increment_i = false;
 }
 
 void SuperChipModern::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)

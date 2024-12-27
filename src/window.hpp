@@ -85,7 +85,7 @@ private:
 	inline static const int MIN_WINDOW_HEIGHT = 125;
 	inline static const int _native_menubar_height = 25;
 
-	std::shared_ptr<Chip8Interpreter> _chip8_ptr = std::make_shared<XOChip>();
+	std::shared_ptr<Chip8Interpreter> _chip8_ptr = std::make_shared<Chip8>(Chip8Type::ORIGINAL);
 
 	bool running = true;
 

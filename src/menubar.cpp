@@ -177,8 +177,8 @@ void MenuBar::add_intrepreter_menu()
 			selected_type = Chip8Type::ORIGINAL;
 		}
 
-		if (ImGui::MenuItem("COMMODORE AMIGA", "", type == Chip8Type::AMIGA_CHIP8)) {
-			selected_type = Chip8Type::AMIGA_CHIP8;
+		if (ImGui::MenuItem("Chip 48", "HP48 graphing calculator", type == Chip8Type::CHIP48)) {
+			selected_type = Chip8Type::CHIP48;
 		}
 
 		ImGui::Separator();

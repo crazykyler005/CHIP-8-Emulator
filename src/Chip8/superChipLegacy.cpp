@@ -8,7 +8,7 @@ SuperChipLegacy::SuperChipLegacy(Chip8Type type) :
 	// loading high res fontset into the designated position in memory (81-240)
 	std::copy(std::begin(super_fontset), std::end(super_fontset), std::begin(memory) + sizeof(fontset));
 
-	increment_i = (_type != Chip8Type::SUPER_1p1);
+	_increment_i = (_type != Chip8Type::SUPER_1p1);
 }
 
 bool SuperChipLegacy::switch_type(Chip8Type type)
@@ -24,7 +24,7 @@ bool SuperChipLegacy::switch_type(Chip8Type type)
 	_type = type;
 	opcodes_per_frame = (_type == Chip8Type::SUPER_1p0) ? SC_V1p0_OPF : SC_V1p1_OPF;
 
-	increment_i = (_type != Chip8Type::SUPER_1p1);
+	_increment_i = (_type != Chip8Type::SUPER_1p1);
 
 	return true;
 }

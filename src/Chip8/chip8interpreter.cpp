@@ -341,8 +341,7 @@ void Chip8Interpreter::run_instruction() {
 			} else if (sub_opcode == 0x18) {
 				sound_timer = registers[VX_reg];
 
-			// Adds VX to I. The CHIP-8 interpreter for the Commodore Amiga sets VF to 1 when an overflow occurs from this.
-			// There is one known game that depends on this happening and at least one that doesn't.
+			// Adds VX to I
 			} else if (sub_opcode == 0x1E) {
 				index_reg += registers[VX_reg];
 
@@ -374,7 +373,7 @@ void Chip8Interpreter::run_instruction() {
 					lowest_mem_addr_updated = index_reg;
 				}
 
-				if (increment_i) {
+				if (_increment_i) {
 					index_reg += VX_reg + 1;
 				}
 
@@ -385,7 +384,7 @@ void Chip8Interpreter::run_instruction() {
 					registers[i] = memory[index_reg + i];
 				}
 
-				if (increment_i) {
+				if (_increment_i) {
 					index_reg += VX_reg + 1;
 				}
 			}
