@@ -2,25 +2,26 @@
 #include "chip8.hpp"
 
 Chip8::Chip8(Chip8Type type) :
-	Chip8Interpreter("Chip-8", 64, 32, 8)
+	Chip8Interpreter("Chip-8", type, 64, 32, 8, 15)
 {
-	_type = type;
+	_selected_planes = 0b01;
+	_increment_i = true;
 }
 
 bool Chip8::switch_type(Chip8Type type)
 {
-	if (type != Chip8Type::ORIGINAL && type != Chip8Type::AMIGA_CHIP8) {
-		printf("Invalid type conversion\n");
+	if (type != Chip8Type::ORIGINAL && type != Chip8Type::CHIP48) {
 		return false;
 	}
 	
 	_type = type;
-	// increment_i = (_type != Chip8Type::SUPER_1p1);
+	// _increment_i = (_type != Chip8Type::SUPER_1p1);
 
 	return true;
 }
 
-void Chip8::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
+void Chip8::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
+{
 	// Reset register VF
 	registers[0xF] = 0;
 
@@ -64,29 +65,73 @@ void Chip8::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height) {
 
 bool Chip8::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) {
 
+	uint8_t low_byte = opcode & 0xFF;
 	uint8_t low_nibble = opcode & 0xF;
 
-	if (_type == Chip8Type::AMIGA_CHIP8) {
+	if (_type == Chip8Type::CHIP48) {
 		// No operation
-		if (opcode == 0x0000) {
-			;
+		switch (opcode & 0xF000) {
+			case 0xB000:
+				program_ctr = registers[VX_reg] + low_byte;
+				break;
 
-		// Stop
-		} else if (opcode == 0xF000) {
-			is_running = false;
-			
-		// Modified instruction: FX1E - If the result of VX+I overflows set VF to 1
-		// There is one known game that depends on this modified behavior happening.
-		} else if (opcode & 0xF0FF == 0xF01E) {
-			index_reg += registers[VX_reg];
-			registers[0xF] = (index_reg & 0xF000) ? 1 : 0;
-		} else {
-			return false;
+			case 0x8000:
+				// Shifts VX to the right by 1, then stores the least significant bit of VX prior to the shift into VF.
+				if ((low_byte & 0xF) == 6) {
+					auto previous_VX = registers[VX_reg];
+
+					registers[VX_reg] >>= 1;
+					registers[0xF] = previous_VX & 0x1;
+
+				// Shifts VX to the left by 1, then sets VF to 1 if the most significant bit of VX prior to that shift was set, or to 0 if it was unset.
+				} else if ((low_byte & 0xF) == 0xE) {
+					auto previous_VX = registers[VX_reg];
+
+					registers[VX_reg] <<= 1;
+					registers[0xF] = (previous_VX & 0x80) ? 1 : 0;
+				} else {
+					return false;
+				}
+
+				break;
+
+			case 0xF000:
+
+				if (low_byte == 0x55) {
+					for (uint8_t i = 0; i <= VX_reg; i++) {
+						memory[index_reg + i] = registers[i];
+					}
+
+					if (index_reg < lowest_mem_addr_updated) {
+						lowest_mem_addr_updated = index_reg;
+					}
+
+					if (_increment_i) {
+						index_reg += VX_reg;
+					}
+
+				// Fills from V0 to VX (including VX) with values from memory, starting at address I.
+				// The offset from I is increased by 1 for each value read, but I itself is left unmodified.
+				} else if (low_byte == 0x65) {
+					for (uint8_t i = 0; i <= VX_reg; i++) {
+						registers[i] = memory[index_reg + i];
+					}
+
+					if (_increment_i) {
+						index_reg += VX_reg;
+					}
+				}
+				break;
+
+			default:
+				return false;
 		}
 
 	// COSMAC based variants will reset VF for opcodes 8XY1, 8XY2, 8XY3
-	} else if (low_nibble < 4 || low_nibble > 0) {
+	} else if (((opcode & 0xF000) == 0x8000) && (low_nibble < 4 && low_nibble > 0)) {
 		registers[0xF] = 0;
+		return false;
+	} else {
 		return false;
 	}
 

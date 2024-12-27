@@ -74,14 +74,34 @@ int Window::init() {
 
 void Window::switch_interpreter(Chip8Type type)
 {
+	bool was_running = _chip8_ptr->is_running;
+	
 	stop_game_loop();
 
-	if (type < Chip8Type::SUPER_1p0) {
-		_chip8_ptr = std::make_shared<Chip8>(type);
-	}  else if (type < Chip8Type::SUPER_1p0) {
-		_chip8_ptr = std::make_shared<SuperChip>(type);
-	} else {
-		_chip8_ptr = std::make_shared<SuperChipModern>();
+	std::lock_guard<std::mutex> lock(mtx);
+
+	// need to first nullify the shared pointer references so an objects destructor doesn't modify any changes made by the new objects constructor
+	_chip8_ptr = nullptr;
+	m_menubar->set_chip8_pointer(nullptr);
+	screen.set_chip8_pointer(nullptr);
+
+	switch (type) {
+		case Chip8Type::ORIGINAL:
+		case Chip8Type::CHIP48:
+			_chip8_ptr = std::make_shared<Chip8>(type);
+			break;
+		case Chip8Type::SUPER_1p0:
+		case Chip8Type::SUPER_1p1:
+			_chip8_ptr = std::make_shared<SuperChipLegacy>(type);
+			break;
+		case Chip8Type::SUPER_MODERN:
+			_chip8_ptr = std::make_shared<SuperChipModern>();
+			break;
+		case Chip8Type::XO:
+			_chip8_ptr = std::make_shared<XOChip>();
+			break;
+		default:
+			throw std::invalid_argument("Invalid Chip8Type");
 	}
 
 	m_menubar->set_chip8_pointer(_chip8_ptr);
@@ -92,7 +112,9 @@ void Window::switch_interpreter(Chip8Type type)
 	// load program into new Chip8Inerpreter instance
 	_chip8_ptr->reset();
 
-	start_game_loop();
+	if (was_running) {
+		start_game_loop();
+	}
 }
 
 void Window::main_loop() 
@@ -140,52 +162,53 @@ void Window::game_loop()
 {
 	auto fps = std::chrono::microseconds(get_microseconds_in_second() / _chip8_ptr->HZ_PER_SECOND);
 	auto start_time = std::chrono::steady_clock::now();
+	uint32_t instructions_ran = 0;
 
 	while (_chip8_ptr->is_running) {
 		if (_chip8_ptr->is_paused) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-			if (!is_run_one_instruction) {
-				continue;
-			}
-
-			is_run_one_instruction = false;
 		}
 
 		_chip8_ptr->run_instruction();
 
-		if (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time) >= fps) {
-
-			std::lock_guard<std::mutex> lock(mtx);
-
-			start_time = std::chrono::steady_clock::now();
-			_chip8_ptr->countdown_timers();
-
-			if (_chip8_ptr->play_sfx) {
-				_chip8_ptr->play_sfx = false;
-
-				std::thread sound_worker(&Window::play_sound, this);
-				sound_worker.detach();
-			}
-
-			if (_chip8_ptr->draw_flag) {
-				_chip8_ptr->draw_flag = false;
-				update_texture = true;
-			}
+		if (++instructions_ran < _chip8_ptr->opcodes_per_frame) {
+			continue;
 		}
 
-		sleep_thread_microseconds(get_microseconds_in_second() / _chip8_ptr->opcodes_per_second);
+		auto time_passed = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time);
+
+		if (std::chrono::duration_cast<std::chrono::microseconds>(time_passed) < fps) {
+			auto sleep_duration = std::chrono::duration_cast<std::chrono::microseconds>(fps - time_passed).count();
+			sleep_thread_microseconds(sleep_duration);
+		}
+
+		std::lock_guard<std::mutex> lock(mtx);
+
+		instructions_ran = 0;
+		start_time = std::chrono::steady_clock::now();
+		_chip8_ptr->countdown_timers();
+
+		if (_chip8_ptr->play_sfx) {
+			_chip8_ptr->play_sfx = false;
+
+			std::thread sound_worker(&Window::play_sound, this);
+			sound_worker.detach();
+		}
+
+		if (_chip8_ptr->draw_flag) {
+			_chip8_ptr->draw_flag = false;
+			update_texture = true;
+		}
 	}
 }
 
 void Window::run_single_instruction() {
 	static uint16_t ran_instructions = 0;
-	uint16_t max_instruction_per_frame = (_chip8_ptr->opcodes_per_second / _chip8_ptr->HZ_PER_SECOND);
 
-	_chip8_ptr->print_current_opcode();
+	// _chip8_ptr->print_current_opcode();
 	_chip8_ptr->run_instruction();
 
-	if (++ran_instructions >= max_instruction_per_frame) {
+	if (++ran_instructions >= _chip8_ptr->opcodes_per_frame) {
 		_chip8_ptr->countdown_timers();
 		ran_instructions = 0;
 	}
@@ -228,8 +251,9 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 			}
 		}
 
-	} else if (is_press_event && ((modifier & ~(KMOD_CTRL | KMOD_ALT)) == KMOD_NONE) &&
-		((modifier & KMOD_CTRL) & KMOD_CTRL) && _chip8_ptr->is_running) {
+	} else if (is_press_event && ((modifier & (KMOD_CTRL | KMOD_ALT)) != KMOD_NONE) &&
+		(modifier & KMOD_CTRL) && _chip8_ptr->is_running) {
+
 		if (char_pressed == SDLK_s) {
 
 		} else if (char_pressed == SDLK_l) {
@@ -241,6 +265,8 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 			}
 
 			_chip8_ptr->is_paused = true;
+		} else if (char_pressed == SDLK_r) {
+			m_menubar->on_menu_file_reset();
 
 		// run one instruction at a time
 		} else if (char_pressed == SDLK_RIGHT) {
@@ -272,7 +298,7 @@ void Window::stop_game_loop() {
 	_chip8_ptr->is_running = false;
 
 	// wait for game loop thread to finish
-	std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_second)) * 2));
+	std::this_thread::sleep_for(std::chrono::microseconds((get_microseconds_in_second() / (_chip8_ptr->opcodes_per_frame))));
 }
 
 void adjust_volume(uint8_t* wav_buffer, uint32_t wav_length, SDL_AudioSpec* wav_spec, float volume) {

@@ -1,9 +1,12 @@
 #include "superChipModern.hpp"
 
 SuperChipModern::SuperChipModern() :
-	SuperChip(Chip8Type::SUPER_MODERN)
+	SuperChipInterpreter("Superchip Modern", Chip8Type::SUPER_MODERN, 30)
 {
 	Chip8Interpreter::wait_for_display_update = false;
+	_user_flag_registers.resize(16);
+
+	_increment_i = false;
 }
 
 void SuperChipModern::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)

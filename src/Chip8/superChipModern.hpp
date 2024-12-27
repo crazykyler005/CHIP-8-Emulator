@@ -1,8 +1,8 @@
 # pragma once
 
-#include "superChip.hpp"
+#include "superChipInterpreter.hpp"
 
-class SuperChipModern : public SuperChip {
+class SuperChipModern : public SuperChipInterpreter {
 
 public:
 	SuperChipModern();

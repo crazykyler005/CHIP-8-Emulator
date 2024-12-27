@@ -27,12 +27,14 @@
 
 struct ColorScheme {
 	std::string name;
-	uint32_t color1;
-	uint32_t color2;
+	uint32_t foreground_color;
+	uint32_t intersection_color;
+	uint32_t background_color;
+	uint32_t unselected_plane_color;
 
 	// Constructor to initialize the values
-    ColorScheme(const std::string& name, uint32_t color1, uint32_t color2)
-        : name(name), color1(color1), color2(color2) {}
+    ColorScheme(const std::string& name, uint32_t foreground_color, uint32_t intersection_color, uint32_t background_color, uint32_t unselected_plane_color)
+        : name(name), foreground_color(foreground_color), intersection_color(intersection_color), background_color(background_color), unselected_plane_color(unselected_plane_color) {}
 };
 
 // Forward declare MenuBar class
@@ -68,22 +70,22 @@ public:
 		return (a << 24) | (b << 16) | (g << 8) | r;
 	}
 
-	static inline std::array<ColorScheme, 4> COLOR_SCHEME_ARRAY = {
-		ColorScheme("Orginial", get_rgba32_value(255, 255, 255), get_rgba32_value(0, 0, 0) ),
-		ColorScheme( "Gameboy", get_rgba32_value(113, 129, 40), get_rgba32_value(209, 209, 88) ),
-		ColorScheme(    "Mint", get_rgba32_value(149, 199, 152), get_rgba32_value(133, 109, 82) ),
-		ColorScheme(    "Gold", get_rgba32_value(207, 171, 81), get_rgba32_value(64, 51, 47) )
+	static inline std::array<ColorScheme, 5> COLOR_SCHEME_ARRAY = {
+		ColorScheme("Orginial", get_rgba32_value(255, 255, 255), get_rgba32_value(171, 171, 171), get_rgba32_value(85, 85, 85), get_rgba32_value(0, 0, 0) ),
+		ColorScheme( "Gameboy", get_rgba32_value(144, 140, 12), get_rgba32_value(104, 129, 57), get_rgba32_value(68, 99, 61), get_rgba32_value(43, 76, 45) ),
+		ColorScheme(  "Sunset", get_rgba32_value(249, 205, 166), get_rgba32_value(227, 155, 127), get_rgba32_value(171, 100, 90), get_rgba32_value(82, 50, 55) ),
+		ColorScheme(   "Chill", get_rgba32_value(196, 210, 132), get_rgba32_value(174, 164, 110), get_rgba32_value(139, 110, 89), get_rgba32_value(98, 62, 62) ),
+		ColorScheme( "Vibrant", get_rgba32_value(126, 31, 35), get_rgba32_value(196, 24, 31), get_rgba32_value(18, 10, 25), get_rgba32_value(94, 64, 105) )
 	};
 
 	static inline uint8_t seletected_color_scheme = 0;
-	static inline bool is_run_one_instruction = false;
 
 private:
 	inline static const int MIN_WINDOW_WIDTH = 250;
 	inline static const int MIN_WINDOW_HEIGHT = 125;
 	inline static const int _native_menubar_height = 25;
 
-	std::shared_ptr<Chip8Interpreter> _chip8_ptr = std::make_shared<SuperChip>(Chip8Type::SUPER_1p1);
+	std::shared_ptr<Chip8Interpreter> _chip8_ptr = std::make_shared<Chip8>(Chip8Type::ORIGINAL);
 
 	bool running = true;
 

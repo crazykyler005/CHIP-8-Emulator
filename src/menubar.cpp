@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <iostream>
 
-static bool display_ips_config = false;
+static bool display_ipf_config = false;
 
 MenuBar::MenuBar(std::shared_ptr<Chip8Interpreter> chip8_pointer, Window& parent_window)
 	: _chip8_ptr(chip8_pointer), _parent_window(parent_window)
@@ -24,7 +24,7 @@ void MenuBar::generate()
 		ImGui::EndMainMenuBar();
 	}
 
-	display_ips_configure_window();
+	display_ipf_configure_window();
 	display_file_load_window();
 }
 
@@ -32,13 +32,13 @@ void MenuBar::add_file_menu()
 {
 	if (ImGui::BeginMenu("File"))
 	{
-		if (ImGui::MenuItem("Load", "Ctrl+O")) {
+		if (ImGui::MenuItem("Load", "Ctrl+o")) {
 			if (!fileDialog.IsOpened()) {
-				fileDialog.OpenDialog("ChooseFileDlgKey", "Choose File", ".ch8,.txt,.*");
+				fileDialog.OpenDialog("ChooseFileDlgKey", "Choose File", ".ch8,.xo8,.txt,.*");
 			}
 		}
 
-		if (ImGui::MenuItem("Reset", NULL, false, _chip8_ptr->is_running)) {
+		if (ImGui::MenuItem("Reset", "Ctrl-r", false, _chip8_ptr->is_running)) {
 			on_menu_file_reset();
 		}
 
@@ -97,10 +97,11 @@ void MenuBar::add_settings_menu()
 		ImGui::MenuItem("Disable sound", NULL, &_chip8_ptr->sound_disabled);
 		ImGui::MenuItem("Pause", "Ctrl-p", &_chip8_ptr->is_paused);
 		ImGui::MenuItem("Display wait quirk", "", &_chip8_ptr->wait_for_display_update);
-		ImGui::MenuItem("Run single instruction", "Ctrl-RIGHT", 
-			&_parent_window.is_run_one_instruction, 
-			(_chip8_ptr->is_paused && _chip8_ptr->is_running)
-		);
+		
+		if (ImGui::MenuItem("Run single instruction", "Ctrl-RIGHT", 
+			false, (_chip8_ptr->is_paused && _chip8_ptr->is_running))) {
+			_parent_window.run_single_instruction();
+		}
 
 		if (ImGui::BeginMenu("Resolution"))
 		{
@@ -118,7 +119,7 @@ void MenuBar::add_settings_menu()
 
 		if (ImGui::MenuItem("Set instructions per second", NULL, false, true))
         {
-			display_ips_config = true;
+			display_ipf_config = true;
         }
 
 		if (ImGui::BeginMenu("Colors Schemes"))
@@ -126,12 +127,27 @@ void MenuBar::add_settings_menu()
 		    float sz = ImGui::GetTextLineHeight();
 		    for (int i = 0; i < Window::COLOR_SCHEME_ARRAY.size(); i++)
 		    {
-		        ImVec2 c1_pos = ImGui::GetCursorScreenPos();
-				ImVec2 c2_pos = {c1_pos.x + sz + 3, c1_pos.y};
+		        ImVec2 fg_c_pos = ImGui::GetCursorScreenPos();
+				ImVec2 unselect_c_pos = {fg_c_pos.x + sz + 3, fg_c_pos.y};
 
-		        ImGui::GetWindowDrawList()->AddRectFilled(c1_pos, ImVec2(c1_pos.x + sz, c1_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].color1);
-				ImGui::GetWindowDrawList()->AddRectFilled(c2_pos, ImVec2(c2_pos.x + sz, c2_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].color2);
-		        ImGui::Dummy(ImVec2(sz * 2, sz));
+		        ImGui::GetWindowDrawList()->AddRectFilled(fg_c_pos, ImVec2(fg_c_pos.x + sz, fg_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].foreground_color);
+
+				if (_chip8_ptr->get_type() == Chip8Type::XO) {
+					ImVec2 intersect_c_pos = { fg_c_pos.x + sz + 3, fg_c_pos.y };
+					ImVec2 bg_c_pos = { intersect_c_pos.x + sz + 3, intersect_c_pos.y };
+					unselect_c_pos = { bg_c_pos.x + sz + 3, bg_c_pos.y };
+
+					ImGui::GetWindowDrawList()->AddRectFilled(intersect_c_pos, ImVec2(intersect_c_pos.x + sz, intersect_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].intersection_color);
+					ImGui::GetWindowDrawList()->AddRectFilled(bg_c_pos, ImVec2(bg_c_pos.x + sz, bg_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].background_color);
+					ImGui::GetWindowDrawList()->AddRectFilled(unselect_c_pos, ImVec2(unselect_c_pos.x + sz, unselect_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].unselected_plane_color);
+
+					ImGui::Dummy(ImVec2((sz * 4) + 6, sz));
+				} else {
+
+					ImGui::GetWindowDrawList()->AddRectFilled(unselect_c_pos, ImVec2(unselect_c_pos.x + sz, unselect_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].unselected_plane_color);
+					ImGui::Dummy(ImVec2(sz * 2, sz));
+				}
+
 		        ImGui::SameLine();
 		        
 				if ( ImGui::MenuItem(Window::COLOR_SCHEME_ARRAY[i].name.c_str(), 
@@ -161,8 +177,8 @@ void MenuBar::add_intrepreter_menu()
 			selected_type = Chip8Type::ORIGINAL;
 		}
 
-		if (ImGui::MenuItem("COMMODORE AMIGA", "", type == Chip8Type::AMIGA_CHIP8)) {
-			selected_type = Chip8Type::AMIGA_CHIP8;
+		if (ImGui::MenuItem("Chip 48", "HP48 graphing calculator", type == Chip8Type::CHIP48)) {
+			selected_type = Chip8Type::CHIP48;
 		}
 
 		ImGui::Separator();
@@ -181,10 +197,13 @@ void MenuBar::add_intrepreter_menu()
 
 		ImGui::Separator();
 
-		if (ImGui::MenuItem("XO Chip", "", false, false)) {}
+		if (ImGui::MenuItem("XO Chip", "", type == Chip8Type::XO)) {
+			selected_type = Chip8Type::XO;
+		}
 
 		if (selected_type != Chip8Type::END) {
 			if (!_chip8_ptr->switch_type(selected_type)) {
+				printf("Invalid type conversion. Switching interpreter\n");
 				_parent_window.switch_interpreter(selected_type);
 			}
 
@@ -197,6 +216,10 @@ void MenuBar::add_intrepreter_menu()
 
 void MenuBar::on_menu_file_reset()
 {
+	if (!_chip8_ptr->is_running) {
+		return;
+	}
+
 	_parent_window.stop_game_loop();
 	_chip8_ptr->reset();
 	_parent_window.start_game_loop();
@@ -232,23 +255,23 @@ void MenuBar::on_menu_update_resolution(int i)
 	selected_resolution_multiplier = i;
 }
 
-void MenuBar::display_ips_configure_window()
+void MenuBar::display_ipf_configure_window()
 {
-	if (!display_ips_config) {
+	if (!display_ipf_config) {
 		return;
 	}
 
-	if (ImGui::Begin("Configure IPS", (bool*)nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
+	if (ImGui::Begin("Configure IPF", (bool*)nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
 	{
-		ImGui::Text("Type in a value between 1 and 2000");
+		ImGui::Text("Type in a value between 1 and 10000");
 
-		static char IPS_char_buff[5] = "700"; ImGui::InputText("IPS", IPS_char_buff, 32, ImGuiInputTextFlags_CharsDecimal);
+		static char IPF_char_buff[5] = "15"; ImGui::InputText("IPF", IPF_char_buff, 32, ImGuiInputTextFlags_CharsDecimal);
 		if (ImGui::Button("Submit", ImVec2(50,50))) {
-			auto new_IPS = atoi(IPS_char_buff);
+			auto new_IPF = atoi(IPF_char_buff);
 
-			if (0 < new_IPS <= 2000) {
-				_chip8_ptr->opcodes_per_second = new_IPS;
-				display_ips_config = false;
+			if (0 < new_IPF <= 10000) {
+				_chip8_ptr->opcodes_per_frame = new_IPF;
+				display_ipf_config = false;
 			}
 		}
 
@@ -270,7 +293,7 @@ void MenuBar::display_file_load_window()
 
 			if (_chip8_ptr->load_program(filePathName)) {
 				_program_name = fileDialog.GetCurrentFileName();
-				SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->INTERPRETER_NAME + "Emulator - " + fileDialog.GetCurrentFileName()).c_str());
+				SDL_SetWindowTitle(_parent_window.window_ptr, (_chip8_ptr->INTERPRETER_NAME + " Emulator - " + fileDialog.GetCurrentFileName()).c_str());
 
 				if (_chip8_ptr->is_running) {
 					_parent_window.stop_game_loop();

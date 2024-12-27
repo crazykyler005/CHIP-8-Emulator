@@ -10,9 +10,11 @@
 
 #include "chip8interpreter.hpp"
 
-Chip8Interpreter::Chip8Interpreter(std::string name, uint8_t width, uint8_t height, uint8_t sprite_width) :
-	INTERPRETER_NAME(name), native_width(width), native_height(height)
+Chip8Interpreter::Chip8Interpreter(std::string name, Chip8Type type, uint8_t width, uint8_t height, uint8_t sprite_width, uint16_t opf) :
+	INTERPRETER_NAME(name), native_width(width), native_height(height), opcodes_per_frame(opf)
 {
+	_type = type;
+
 	// loading fontset into the designated position in memory (0-80)
 	std::copy(std::begin(fontset), std::end(fontset), std::begin(memory));
 
@@ -100,8 +102,14 @@ void Chip8Interpreter::run_instruction() {
 
 	// printf("opcode: %x, i: %d, pc: %d, reg[vx]: %d, VX_reg: %d\n", opcode, index_reg, program_ctr, registers[VX_reg], VX_reg);
 
+	// printf("V0:%02x V1:%02x V2:%02x V3:%02x V4:%02x V5:%02x V6:%02x V7:%02x V8:%02x V9:%02x VA:%02x VB:%02x VC:%02x VD:%02x VE:%02x VF:%02x I:%04x O:%04x\n", 
+	// 	registers[0], registers[1], registers[2], registers[3], registers[4], registers[5], registers[6], registers[7], registers[8], registers[9], registers[0xA], registers[0xB], registers[0xC], registers[0xD], registers[0xE], registers[0xF], 
+	// 	index_reg,
+	// 	opcode
+	// );
+
 	// DXYN is the slowest command to run so to emulate this we wait until the next frame the run the next instruction
-	if (wait_for_display_update && draw_flag) {
+	if (Chip8Interpreter::wait_for_display_update && draw_flag) {
 		return;
 	}
 
@@ -162,8 +170,10 @@ void Chip8Interpreter::run_instruction() {
 
 		case 0x5000: // 5XY0
 			// Skips the next instruction if VX equals VY (usually the next instruction is a jump to skip a code block)
-			if (registers[VX_reg] == registers[VY_reg]) {
-				skip_instruction();
+			if (((opcode & 0xF) == 0) ) {
+				if (registers[VX_reg] == registers[VY_reg]) {
+					skip_instruction();
+				}
 			}
 
 			break;
@@ -331,8 +341,7 @@ void Chip8Interpreter::run_instruction() {
 			} else if (sub_opcode == 0x18) {
 				sound_timer = registers[VX_reg];
 
-			// Adds VX to I. The CHIP-8 interpreter for the Commodore Amiga sets VF to 1 when an overflow occurs from this.
-			// There is one known game that depends on this happening and at least one that doesn't.
+			// Adds VX to I
 			} else if (sub_opcode == 0x1E) {
 				index_reg += registers[VX_reg];
 
@@ -364,7 +373,7 @@ void Chip8Interpreter::run_instruction() {
 					lowest_mem_addr_updated = index_reg;
 				}
 
-				if (increment_i) {
+				if (_increment_i) {
 					index_reg += VX_reg + 1;
 				}
 
@@ -375,7 +384,7 @@ void Chip8Interpreter::run_instruction() {
 					registers[i] = memory[index_reg + i];
 				}
 
-				if (increment_i) {
+				if (_increment_i) {
 					index_reg += VX_reg + 1;
 				}
 			}

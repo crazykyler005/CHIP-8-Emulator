@@ -13,8 +13,9 @@
 #include "ImGuiFileDialog.h"
 
 #include "chip8.hpp"
-#include "superChip.hpp"
+#include "superChipLegacy.hpp"
 #include "superChipModern.hpp"
+#include "xoChip.hpp"
 
 class Window;
 
@@ -32,6 +33,7 @@ public:
 	uint8_t selected_resolution_multiplier = 8;
 
 	void set_chip8_pointer(std::shared_ptr<Chip8Interpreter> chip8_pointer) { _chip8_ptr = chip8_pointer; };
+	void on_menu_file_reset();
 
 private:
 
@@ -40,14 +42,13 @@ private:
 	void add_settings_menu();
 	void add_intrepreter_menu();
 
-	void on_menu_file_reset();
 	void on_menu_file_quit();
 
 	void on_menu_state_save(int i);
 	void on_menu_state_load(int i);
 	void on_menu_update_resolution(int i);
 
-	void display_ips_configure_window();
+	void display_ipf_configure_window();
 	void display_file_load_window();
 	
 	ImGuiFileDialog fileDialog;

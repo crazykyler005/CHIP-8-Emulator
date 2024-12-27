@@ -10,8 +10,7 @@
 
 enum class Chip8Type : uint8_t {
 	ORIGINAL = 0,
-	AMIGA_CHIP8,
-	// CHIP48,
+	CHIP48,
 	SUPER_1p0,
 	SUPER_1p1,
 	SUPER_MODERN,
@@ -32,13 +31,13 @@ struct key_info {
 };
 
 public:
-	Chip8Interpreter(std::string name, uint8_t width, uint8_t height, uint8_t sprite_width);
+	Chip8Interpreter(std::string name, Chip8Type type, uint8_t width, uint8_t height, uint8_t sprite_width, uint16_t opf);
 	virtual ~Chip8Interpreter() = default;
 
 	const uint8_t native_width;
 	const uint8_t native_height;
 
-	virtual bool switch_type(Chip8Type type) = 0;
+	virtual bool switch_type(Chip8Type type) { return (_type == type); };
 	virtual Chip8Type& get_type() { return _type; };
 
 	virtual void reset();
@@ -57,7 +56,7 @@ public:
 	virtual void countdown_timers();
 
 	inline static const time_t HZ_PER_SECOND = 60;
-	uint16_t opcodes_per_second = 700;
+	uint32_t opcodes_per_frame = 15;
 
 	const std::string INTERPRETER_NAME;
 
@@ -79,6 +78,8 @@ public:
 	// std::vector<uint8_t> px_states[(64 * 32) / 8] = {};
 	std::vector<uint8_t> px_states;
 
+	virtual uint8_t number_of_planes() { return px_states.size() / (native_height * native_width); };
+
 protected:
 
 	inline static const std::string SAVE_FILE_EXTENSION = ".sav";
@@ -86,7 +87,7 @@ protected:
 	// 0x050-0x0A0 - Used for the built in 4x5 pixel font set (0-F)
 	// 0x200-0xFFF - Program ROM and work RAM
 
-	inline static const uint16_t MEMORY_SIZE = 4096; //0x1000
+	inline static const uint32_t MEMORY_SIZE = 0x10000; //0x1000
 
 	// most programs written for the original system begin at memory location
 	// 0x200 because the interpreter occupied the first 512 bytes
@@ -101,6 +102,7 @@ protected:
 	std::vector<uint16_t> stack;
 
 	Chip8Type _type;
+	uint8_t _selected_planes = 0b01;
 
 	uint8_t memory[MEMORY_SIZE] = {};
 	uint8_t registers[16] = {};
@@ -163,7 +165,7 @@ protected:
 
 	// Before the CHIP-8 interpreters CHIP48 and SUPER-CHIP (1970s - 1980s), the I register
 	// was incremented each time it stored or loaded one register. (I += X + 1).
-	bool increment_i = true;
+	bool _increment_i = true;
 	std::vector<uint8_t> additional_data;
 
 	virtual bool run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& VX_reg, uint8_t& VY_reg) { return false; };

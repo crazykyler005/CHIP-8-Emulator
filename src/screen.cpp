@@ -39,12 +39,26 @@ void Screen::update_texture()
         return;
     }
 
+	uint8_t planes = _chip8_ptr->number_of_planes();
+	uint16_t pixels_in_plane = _chip8_ptr->native_width * _chip8_ptr->native_height;
+
 	// Directly modify the pixel data
-	for (int i = 0; i < _chip8_ptr->native_width * _chip8_ptr->native_height; i++) {
+	for (int i = 0; i < pixels_in_plane; i++) {
+
+		if ((planes > 1) && _chip8_ptr->px_states[pixels_in_plane + i]) {
+			if (_chip8_ptr->px_states[i]) {
+				pixels[i] = Window::COLOR_SCHEME_ARRAY[Window::seletected_color_scheme].intersection_color;
+			} else {
+				pixels[i] = Window::COLOR_SCHEME_ARRAY[Window::seletected_color_scheme].background_color;
+			}
+
+			continue;
+		}
+
 		if (_chip8_ptr->px_states[i]) {
-			pixels[i] = Window::COLOR_SCHEME_ARRAY[Window::seletected_color_scheme].color1;
+			pixels[i] = Window::COLOR_SCHEME_ARRAY[Window::seletected_color_scheme].foreground_color;
 		} else {
-			pixels[i] = Window::COLOR_SCHEME_ARRAY[Window::seletected_color_scheme].color2;
+			pixels[i] = Window::COLOR_SCHEME_ARRAY[Window::seletected_color_scheme].unselected_plane_color;
 		}
 	}
 
