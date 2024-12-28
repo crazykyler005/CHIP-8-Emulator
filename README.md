@@ -1,15 +1,19 @@
-This is a functional c++ Chip-8 emulator/interrupter that uses SLD2 for rendering, keyboard input and sound and ImGui for creating the menubar and the file dialog window. 
+This is a functional c++ Chip-8 emulator/interrupter that uses SLD2 for rendering, keyboard input and sound and ImGui for creating the menubar and the file dialog window.
 
-## Planned Menubar features
-- Ability to switch between using different chip8 languages (~~chip8 original and AMIGA~~, chip8-48, ~~modern and legacy super-chip8~~, xo-chip)
-- Ability to enable/disable opcode and opcode differences that are used between various versions
-- ~~Adjust the amount of opcodes ran per second~~
-- ~~Select and load a program/game from a file~~
-- ~~Pause option~~
-- ~~Reset option~~
-- ~~Select a color scheme (default white and black)~~
+## Features
+- Ability to switch between using different chip8 interpreters (original, chip8-48, legacy superchip (v1.0 and 1.1) and superchip modern, and xo-chip)
+- Ability to maginify the resolution by x amount of the native
+- Adjust the amount of opcodes ran per second
+- Step through commands while paused (ctrl-RIGHT)
+- Pause/Resume (ctrl-p)
+- Reset option (ctrl-r)
+- Select a color scheme (default white and black)
 - Save/Load states
-- ~~Ability maginify the resolution by x amount of the native~~
+- Ability to maginify the resolution by x amount of the native
+  
+## Planned features
+- Ability to enable/disable opcode quirks that are used between various versions
+- Save/Load states
 
 ## Requirements
 You need install sdl2 to get this to compile
