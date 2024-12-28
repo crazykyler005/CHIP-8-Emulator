@@ -15,6 +15,8 @@ SuperChipInterpreter::SuperChipInterpreter(std::string name, Chip8Type type, uin
 
 void SuperChipInterpreter::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 {
+	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
+	
 	// Reset register VF
 	registers[0xF] = 0;
 
@@ -27,7 +29,6 @@ void SuperChipInterpreter::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_heigh
 	uint8_t draw_width = (sprite_height == 16) ? sprite_height : 8;
 
 	// the starting x and y positions wrap
-	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
 	x = x % native_width;
 	y = y % native_height;
 

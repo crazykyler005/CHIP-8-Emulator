@@ -24,6 +24,8 @@ XOChip::XOChip() :
 
 void XOChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 {
+	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
+
 	// Reset register VF
 	registers[0xF] = 0;
 
@@ -34,11 +36,6 @@ void XOChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 
 	// if a sprites height is 16px then it's width is also 16px otherwise it's 8px
 	uint8_t draw_width = (sprite_height == 16) ? sprite_height : 8;
-
-	// the starting x and y positions wrap
-	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
-	x = x % native_width;
-	y = y % native_height;
 
 	for (uint8_t yline = 0; yline < sprite_height; yline++)
 	{
@@ -85,6 +82,8 @@ void XOChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 
 void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 {
+	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
+	
 	// low-resolution mode (64x32), even though the application is suppose to emulate that the
 	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
 	// each pixel is represented by 2x2 on-screen pixels.
@@ -94,7 +93,6 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 	uint8_t sprite_width = large_sprite ? sprite_height : 8;
 	uint8_t draw_width = large_sprite ? 32 : 16;
 
-	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
 	x = (x * 2) % native_width;
 	y = (y * 2) % native_height;
 

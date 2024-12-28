@@ -42,9 +42,7 @@ void sleep_thread_microseconds(time_t microseconds)
 	auto start_time = std::chrono::steady_clock::now();
 	auto sleep_duration = std::chrono::microseconds(microseconds);
 	auto check_interval = std::chrono::microseconds(microseconds / 50);
-
-	// printf("microseconds: %ld, check_interval: %ld\n", sleep_duration.count(), check_interval.count());
-
+	
 	while (true) {
 		if (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time) >= sleep_duration) {
 			return;

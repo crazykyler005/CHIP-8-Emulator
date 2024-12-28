@@ -29,7 +29,6 @@ void Chip8::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 	if (sprite_height == 0) {
 		return;
 	}
-	// printf("x: %d, y: %d\n", x, y);
 
 	// the starting x and y positions wrap
 	x = x % native_width;

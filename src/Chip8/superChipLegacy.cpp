@@ -29,7 +29,10 @@ bool SuperChipLegacy::switch_type(Chip8Type type)
 	return true;
 }
 
-void SuperChipLegacy::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height) {
+void SuperChipLegacy::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
+{
+	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
+	
 	// low-resolution mode (64x32), even though the application is suppose to emulate that the
 	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
 	// each pixel is represented by 2x2 on-screen pixels.
@@ -38,7 +41,6 @@ void SuperChipLegacy::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_h
 	const uint8_t sprite_width = 8;
 	const uint8_t draw_width = 32;
 
-	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
 	x = (x * 2) % native_width;
 	y = (y * 2) % native_height;
 
