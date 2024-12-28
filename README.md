@@ -12,6 +12,7 @@ This is a functional c++ Chip-8 emulator/interrupter that uses SLD2 for renderin
 - Ability to maginify the resolution by x amount of the native
   
 ## Planned features
+- Program in sound (read audio samples) for the XOChip
 - Ability to enable/disable opcode quirks that are used between various versions
 - Save/Load states
 
