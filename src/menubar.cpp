@@ -152,9 +152,9 @@ void MenuBar::add_settings_menu()
 		        
 				if ( ImGui::MenuItem(Window::COLOR_SCHEME_ARRAY[i].name.c_str(), 
 						(i == 0) ? "default" : "",
-						(Window::seletected_color_scheme == i)
+						(Window::selected_color_scheme == i)
 				)) {
-					Window::seletected_color_scheme = i;
+					Window::selected_color_scheme = i;
 				}
 		    }
 		    ImGui::EndMenu();
@@ -269,7 +269,7 @@ void MenuBar::display_ipf_configure_window()
 		if (ImGui::Button("Submit", ImVec2(50,50))) {
 			auto new_IPF = atoi(IPF_char_buff);
 
-			if (0 < new_IPF <= 10000) {
+			if (0 < new_IPF <= 15000) {
 				_chip8_ptr->opcodes_per_frame = new_IPF;
 				display_ipf_config = false;
 			}
