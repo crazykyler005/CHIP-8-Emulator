@@ -4,7 +4,8 @@
 #define FILE_PATH "../sound.wav"
 
 std::mutex mtx;
-static bool update_texture = false;
+static bool update_texture_ready = false;
+std::condition_variable cv;
 
 Window::Window()
  	: m_menubar(std::make_unique<MenuBar>(_chip8_ptr, *this)),
@@ -140,10 +141,19 @@ void Window::main_loop()
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		if (update_texture) {
-            std::lock_guard<std::mutex> lock(mtx);
-            screen.update_texture();  // Update the texture on the main thread
-            update_texture = false;
+		// if (update_texture) {
+        //     std::lock_guard<std::mutex> lock(mtx);
+        //     screen.update_texture();  // Update the texture on the main thread
+        //     update_texture = false;
+        // }
+
+		// Wait for the signal to update the texture
+        {
+			std::unique_lock<std::mutex> lock(mtx);
+            if (cv.wait_for(lock, std::chrono::microseconds(1000), [] { return update_texture_ready; })) {
+                screen.swap_textures();  // Update the texture if signaled
+                update_texture_ready = false;
+            }
         }
 		
 		auto dstRect = screen.get_texture_dimensions();
@@ -182,22 +192,27 @@ void Window::game_loop()
 			sleep_thread_microseconds(sleep_duration);
 		}
 
-		std::lock_guard<std::mutex> lock(mtx);
+		{
+			std::lock_guard<std::mutex> lock(mtx);
 
-		instructions_ran = 0;
-		start_time = std::chrono::steady_clock::now();
-		_chip8_ptr->countdown_timers();
+			instructions_ran = 0;
+			start_time = std::chrono::steady_clock::now();
+			_chip8_ptr->countdown_timers();
 
-		if (_chip8_ptr->play_sfx) {
-			_chip8_ptr->play_sfx = false;
+			if (_chip8_ptr->play_sfx) {
+				_chip8_ptr->play_sfx = false;
 
-			std::thread sound_worker(&Window::play_sound, this);
-			sound_worker.detach();
-		}
+				std::thread sound_worker(&Window::play_sound, this);
+				sound_worker.detach();
+			}
 
-		if (_chip8_ptr->draw_flag) {
-			_chip8_ptr->draw_flag = false;
-			update_texture = true;
+			if (_chip8_ptr->draw_flag) {
+				_chip8_ptr->draw_flag = false;
+				screen.update_texture();
+				update_texture_ready = true;
+			}
+
+			cv.notify_one();
 		}
 	}
 }
@@ -222,7 +237,7 @@ void Window::run_single_instruction() {
 
 	if (_chip8_ptr->draw_flag) {
 		_chip8_ptr->draw_flag = false;
-		update_texture = true;
+		update_texture_ready = true;
 	}
 }
 
