@@ -16,7 +16,7 @@ Screen::Screen(std::shared_ptr<Chip8Interpreter> chip8_pointer, Window& parent_w
 Screen::~Screen()
 {
 	if (_render_texture) SDL_DestroyTexture(_render_texture);
-    if (_update_texture) SDL_DestroyTexture(_update_texture);
+	if (_update_texture) SDL_DestroyTexture(_update_texture);
 }
 
 void Screen::generate_texture()
@@ -30,20 +30,20 @@ void Screen::generate_texture()
 	);
 
 	_update_texture = SDL_CreateTexture(
-        _parent_window.renderer_ptr,
-        SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_STREAMING,
-        _chip8_ptr->native_width,
-        _chip8_ptr->native_height
-    );
+		_parent_window.renderer_ptr,
+		SDL_PIXELFORMAT_RGBA32,
+		SDL_TEXTUREACCESS_STREAMING,
+		_chip8_ptr->native_width,
+		_chip8_ptr->native_height
+	);
 
 	if (!_render_texture || !_update_texture) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create textures: %s", SDL_GetError());
-    }
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create textures: %s", SDL_GetError());
+	}
 }
 
 void Screen::swap_textures() {
-    std::swap(_render_texture, _update_texture);
+	std::swap(_render_texture, _update_texture);
 }
 
 void Screen::update_texture()
@@ -53,8 +53,8 @@ void Screen::update_texture()
 
 	if (SDL_LockTexture(_update_texture, NULL, (void**)&pixels, &pitch) != 0) {
 		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to lock texture: %s", SDL_GetError());
-        return;
-    }
+		return;
+	}
 
 	const auto& color_scheme = Window::COLOR_SCHEME_ARRAY[Window::selected_color_scheme];
 	const auto& planes = _chip8_ptr->number_of_planes();
@@ -77,7 +77,7 @@ void Screen::update_texture()
 	}
 
 	// Unlock the texture after modifying pixels
-    SDL_UnlockTexture(_update_texture);
+	SDL_UnlockTexture(_update_texture);
 }
 
 SDL_FRect Screen::get_texture_dimensions()

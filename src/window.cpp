@@ -5,7 +5,6 @@
 
 std::mutex mtx;
 static bool update_texture_ready = false;
-std::condition_variable cv;
 
 Window::Window()
  	: m_menubar(std::make_unique<MenuBar>(_chip8_ptr, *this)),
@@ -142,19 +141,59 @@ void Window::main_loop()
 		ImGui::NewFrame();
 
 		// if (update_texture) {
-        //     std::lock_guard<std::mutex> lock(mtx);
-        //     screen.update_texture();  // Update the texture on the main thread
-        //     update_texture = false;
-        // }
+		//     std::lock_guard<std::mutex> lock(mtx);
+		//     screen.update_texture();  // Update the texture on the main thread
+		//     update_texture = false;
+		// }
 
 		// Wait for the signal to update the texture
-        {
-			std::unique_lock<std::mutex> lock(mtx);
-            if (cv.wait_for(lock, std::chrono::microseconds(1000), [] { return update_texture_ready; })) {
-                screen.swap_textures();  // Update the texture if signaled
-                update_texture_ready = false;
-            }
-        }
+
+		if (_chip8_ptr->is_running) {
+
+			auto fps = std::chrono::microseconds(get_microseconds_in_second() / _chip8_ptr->HZ_PER_SECOND);
+			auto start_time = std::chrono::steady_clock::now();
+			uint32_t instructions_ran = 0;
+
+			// if (_chip8_ptr->is_paused) {
+			// 	std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			// }
+
+			while (++instructions_ran < _chip8_ptr->opcodes_per_frame) {
+				_chip8_ptr->run_instruction();
+				continue;
+			}
+
+			auto time_passed = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time);
+
+			if (std::chrono::duration_cast<std::chrono::microseconds>(time_passed) < fps) {
+				auto sleep_duration = std::chrono::duration_cast<std::chrono::microseconds>(fps - time_passed).count();
+				sleep_thread_microseconds(sleep_duration);
+			}
+
+			{
+				std::lock_guard<std::mutex> lock(mtx);
+
+				start_time = std::chrono::steady_clock::now();
+				_chip8_ptr->countdown_timers();
+
+				if (_chip8_ptr->play_sfx) {
+					_chip8_ptr->play_sfx = false;
+
+					std::thread sound_worker(&Window::play_sound, this);
+					sound_worker.detach();
+				}
+
+				if (_chip8_ptr->draw_flag) {
+					_chip8_ptr->draw_flag = false;
+					screen.update_texture();
+					update_texture_ready = true;
+				}
+			}
+		}
+
+		if () {
+			screen.swap_textures();  // Update the texture if signaled
+		}
 		
 		auto dstRect = screen.get_texture_dimensions();
 		SDL_RenderCopyF(renderer_ptr, screen.get_texture(), NULL, &dstRect);
@@ -211,8 +250,6 @@ void Window::game_loop()
 				screen.update_texture();
 				update_texture_ready = true;
 			}
-
-			cv.notify_one();
 		}
 	}
 }
@@ -317,24 +354,24 @@ void Window::stop_game_loop() {
 }
 
 void adjust_volume(uint8_t* wav_buffer, uint32_t wav_length, SDL_AudioSpec* wav_spec, float volume) {
-    // Depending on the audio format, the sample size can vary.
-    // For simplicity, this example assumes 16-bit signed audio (AUDIO_S16LSB).
-    
-    // Calculate the number of samples (wav_length is in bytes)
-    if (wav_spec->format == AUDIO_U8) {
-        // 8-bit unsigned audio
-        for (uint32_t i = 0; i < wav_length; ++i) {
-            wav_buffer[i] = (uint8_t)(wav_buffer[i] * volume);
-        }
-    } else if (wav_spec->format == AUDIO_S16LSB) {
-        // 16-bit signed audio
-        int16_t* samples = (int16_t*)wav_buffer;
-        uint32_t sample_count = wav_length / 2; // 2 bytes per sample
+	// Depending on the audio format, the sample size can vary.
+	// For simplicity, this example assumes 16-bit signed audio (AUDIO_S16LSB).
+	
+	// Calculate the number of samples (wav_length is in bytes)
+	if (wav_spec->format == AUDIO_U8) {
+		// 8-bit unsigned audio
+		for (uint32_t i = 0; i < wav_length; ++i) {
+			wav_buffer[i] = (uint8_t)(wav_buffer[i] * volume);
+		}
+	} else if (wav_spec->format == AUDIO_S16LSB) {
+		// 16-bit signed audio
+		int16_t* samples = (int16_t*)wav_buffer;
+		uint32_t sample_count = wav_length / 2; // 2 bytes per sample
 
-        for (uint32_t i = 0; i < sample_count; ++i) {
-            samples[i] = (int16_t)(samples[i] * volume);
-        }
-    }
+		for (uint32_t i = 0; i < sample_count; ++i) {
+			samples[i] = (int16_t)(samples[i] * volume);
+		}
+	}
 }
 
 void Window::play_sound()
@@ -350,10 +387,10 @@ void Window::play_sound()
 
 	SDL_AudioDeviceID device_id = SDL_OpenAudioDevice(NULL, 0, &wav_spec, NULL, 0);
 	if (device_id == 0) {
-        fprintf(stderr, "Failed to open audio device: %s\n", SDL_GetError());
-        SDL_FreeWAV(wav_buffer);
-        return;
-    }
+		fprintf(stderr, "Failed to open audio device: %s\n", SDL_GetError());
+		SDL_FreeWAV(wav_buffer);
+		return;
+	}
 
 	adjust_volume(wav_buffer, wav_length, &wav_spec, 0.5f);
 

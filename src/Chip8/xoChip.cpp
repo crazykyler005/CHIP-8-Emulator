@@ -106,7 +106,7 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 
 				// Fetch the pixels from the memory starting at location I
 				uint8_t current_byte = memory[index_reg + (px / 8) + (large_sprite ? yline : yline / 2)];
-        		uint8_t px_mask = 0b10000000 >> (px % 8);
+				uint8_t px_mask = 0b10000000 >> (px % 8);
 				
 				if (current_byte & px_mask) {
 					// 8px sprite row is upscaled to 16px

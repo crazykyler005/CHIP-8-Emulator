@@ -118,19 +118,19 @@ void MenuBar::add_settings_menu()
 		}
 
 		if (ImGui::MenuItem("Set instructions per second", NULL, false, true))
-        {
+		{
 			display_ipf_config = true;
-        }
+		}
 
 		if (ImGui::BeginMenu("Colors Schemes"))
 		{
-		    float sz = ImGui::GetTextLineHeight();
-		    for (int i = 0; i < Window::COLOR_SCHEME_ARRAY.size(); i++)
-		    {
-		        ImVec2 fg_c_pos = ImGui::GetCursorScreenPos();
+			float sz = ImGui::GetTextLineHeight();
+			for (int i = 0; i < Window::COLOR_SCHEME_ARRAY.size(); i++)
+			{
+				ImVec2 fg_c_pos = ImGui::GetCursorScreenPos();
 				ImVec2 unselect_c_pos = {fg_c_pos.x + sz + 3, fg_c_pos.y};
 
-		        ImGui::GetWindowDrawList()->AddRectFilled(fg_c_pos, ImVec2(fg_c_pos.x + sz, fg_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].foreground_color);
+				ImGui::GetWindowDrawList()->AddRectFilled(fg_c_pos, ImVec2(fg_c_pos.x + sz, fg_c_pos.y + sz), Window::COLOR_SCHEME_ARRAY[i].foreground_color);
 
 				if (_chip8_ptr->get_type() == Chip8Type::XO) {
 					ImVec2 intersect_c_pos = { fg_c_pos.x + sz + 3, fg_c_pos.y };
@@ -148,16 +148,16 @@ void MenuBar::add_settings_menu()
 					ImGui::Dummy(ImVec2(sz * 2, sz));
 				}
 
-		        ImGui::SameLine();
-		        
+				ImGui::SameLine();
+				
 				if ( ImGui::MenuItem(Window::COLOR_SCHEME_ARRAY[i].name.c_str(), 
 						(i == 0) ? "default" : "",
 						(Window::selected_color_scheme == i)
 				)) {
 					Window::selected_color_scheme = i;
 				}
-		    }
-		    ImGui::EndMenu();
+			}
+			ImGui::EndMenu();
 		}
 
 		ImGui::EndMenu();
@@ -263,13 +263,13 @@ void MenuBar::display_ipf_configure_window()
 
 	if (ImGui::Begin("Configure IPF", (bool*)nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
 	{
-		ImGui::Text("Type in a value between 1 and 10000");
+		ImGui::Text("Type in a value between 1 and 20000");
 
 		static char IPF_char_buff[5] = "15"; ImGui::InputText("IPF", IPF_char_buff, 32, ImGuiInputTextFlags_CharsDecimal);
 		if (ImGui::Button("Submit", ImVec2(50,50))) {
 			auto new_IPF = atoi(IPF_char_buff);
 
-			if (0 < new_IPF <= 15000) {
+			if (new_IPF > 0 && new_IPF <= 20000) {
 				_chip8_ptr->opcodes_per_frame = new_IPF;
 				display_ipf_config = false;
 			}
@@ -282,14 +282,14 @@ void MenuBar::display_ipf_configure_window()
 void MenuBar::display_file_load_window()
 {
 	// If the file dialog is open, display it
-    if (fileDialog.Display("ChooseFileDlgKey")) {
-        // If the user selects a file, get the result
-        if (fileDialog.IsOk()) {
-            std::string filePathName = fileDialog.GetFilePathName();
-            std::string filePath = fileDialog.GetCurrentPath();
+	if (fileDialog.Display("ChooseFileDlgKey")) {
+		// If the user selects a file, get the result
+		if (fileDialog.IsOk()) {
+			std::string filePathName = fileDialog.GetFilePathName();
+			std::string filePath = fileDialog.GetCurrentPath();
 
-            // You can now use the selected file path here
-            printf("Selected file: %s\n", filePathName.c_str());
+			// You can now use the selected file path here
+			printf("Selected file: %s\n", filePathName.c_str());
 
 			if (_chip8_ptr->load_program(filePathName)) {
 				_program_name = fileDialog.GetCurrentFileName();
@@ -302,9 +302,9 @@ void MenuBar::display_file_load_window()
 
 				_parent_window.start_game_loop();
 			}
-        }
+		}
 
-        // Close the dialog after processing
-        fileDialog.Close();
-    }
+		// Close the dialog after processing
+		fileDialog.Close();
+	}
 }
