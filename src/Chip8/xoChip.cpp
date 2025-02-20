@@ -63,7 +63,7 @@ void XOChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 					size_t plane_offset = (native_height * native_width * plane);
 					size_t current_pixel = (wrapped_x + (wrapped_y * native_width)) + plane_offset;
 
-					// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide 
+					// In high resolution mode, DXYN/DXY0 sets VF to the number of rows that either collide
 					// with another sprite or are clipped by the bottom of the screen
 					if (px_states[current_pixel] == 1) {
 						registers[0xF] = 1;
@@ -76,16 +76,16 @@ void XOChip::update_gfx(uint8_t x, uint8_t y, uint8_t sprite_height)
 	}
 
 	draw_flag = true;
-	
+
 	return;
 }
 
 void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 {
 	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
-	
+
 	// low-resolution mode (64x32), even though the application is suppose to emulate that the
-	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
+	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and
 	// each pixel is represented by 2x2 on-screen pixels.
 	bool large_sprite = (sprite_height == 16);
 
@@ -110,7 +110,7 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 				// Fetch the pixels from the memory starting at location I
 				uint8_t current_byte = memory[index_reg + (px / 8) + (large_sprite ? yline : yline / 2)];
         		uint8_t px_mask = 0b10000000 >> (px % 8);
-				
+
 				if (current_byte & px_mask) {
 					// 8px sprite row is upscaled to 16px
 					// ex: 10111101 -> 11001111 11110011
@@ -120,7 +120,7 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 		}
 
 		// if the x position of a pixel is off screen, stop drawing
-		for (uint xline = 0; xline < draw_width; xline++) {
+		for (uint8_t xline = 0; xline < draw_width; xline++) {
 
 			uint8_t wrapped_y = (y + yline) % native_height;
 			uint8_t wrapped_x = (x + xline) % native_width;
@@ -156,7 +156,7 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 	}
 
 	draw_flag = true;
-	
+
 	return;
 }
 
@@ -228,7 +228,7 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 					// clearing screen in all planes
 					memset(px_states.data(), 0, px_states.size());
 					break;
-				
+
 				default:
 					return false;
 			}
@@ -239,7 +239,7 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 			switch (low_byte & 0xF)
 			{
 				// Save VX..VY to memory starting at I; does not increment I
-				case 0x2: 
+				case 0x2:
 				{
 					const uint8_t dist = std::abs(VX_reg - VY_reg) + 1;
 

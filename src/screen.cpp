@@ -4,7 +4,6 @@
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_sdlrenderer2.h>
 #include "ImGuiFileDialog.h"
-#include <SDL2/SDL.h>
 
 Screen::Screen(std::shared_ptr<Chip8Interpreter> chip8_pointer, Window& parent_window)
 	: _chip8_ptr(chip8_pointer), _parent_window(parent_window)

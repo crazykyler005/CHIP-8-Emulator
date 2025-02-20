@@ -24,14 +24,18 @@ You can download the latest version [here](https://github.com/libsdl-org/SDL/rel
 apt-get install libsdl2-dev
 ```
 
+In Windows you need to download it from [here](https://github.com/libsdl-org/SDL/releases). Check what the latestest stable release version is of SDL2 and download `SDL2-devel-2.x.x-VC.zip` from the "Assests" dropdown. It's recommend to extract the contents into C:/ and rename the base folder from SDL2-2.x.x to SDL2
+
 You also need ImGuiFileDialog which can be found [here](https://github.com/aiekick/ImGuiFileDialog) and you'll need to download the following files from it and put them into the lib/imgui submodule folder
 ```
 ImGuiFileDialog.cpp
 ImGuiFileDialog.h
 ImGuiFileDialogConfig.cpp
 ```
+Also include the `direct/` folder if your compiling on Windows
 
 ## Running the application
+### In Linux
 To run the application you need to first generate the make file but running the following terminal commands in the root directory of the repo
 
 ```
@@ -51,3 +55,16 @@ Run the executable
 ```
 ./chip8
 ```
+
+### In Windows
+Open the .env and confirm that the SDL2 directories in there exist and give new paths if need be
+Next, all you need do is run the bat file from the root directory
+```
+./build.bat
+```
+or
+```
+./build.bat Debug
+```
+
+There should now be a `build` directory created in the root directory and within that should be a `Release` or `Debug` folder that contains the executable `chip8.exe`

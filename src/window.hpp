@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
