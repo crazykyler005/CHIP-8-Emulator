@@ -1,7 +1,12 @@
 #include "window.hpp"
 #include "helper_functions.hpp"
 #include <thread>
+
+#ifdef _WIN32
+#define FILE_PATH "./sound.wav"
+#else
 #define FILE_PATH "../sound.wav"
+#endif
 
 std::mutex mtx;
 static bool update_texture = false;
@@ -75,7 +80,7 @@ int Window::init() {
 void Window::switch_interpreter(Chip8Type type)
 {
 	bool was_running = _chip8_ptr->is_running;
-	
+
 	stop_game_loop();
 
 	std::lock_guard<std::mutex> lock(mtx);
@@ -117,7 +122,7 @@ void Window::switch_interpreter(Chip8Type type)
 	}
 }
 
-void Window::main_loop() 
+void Window::main_loop()
 {
 	// prevents last selected menubar dropdowns from staying on the screen
 	screen.update_texture();
@@ -145,7 +150,7 @@ void Window::main_loop()
             screen.update_texture();  // Update the texture on the main thread
             update_texture = false;
         }
-		
+
 		auto dstRect = screen.get_texture_dimensions();
 		SDL_RenderCopyF(renderer_ptr, screen.get_texture(), NULL, &dstRect);
 
@@ -238,7 +243,7 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 	auto& char_pressed = key_info.sym;
 	auto& modifier = key_info.mod;
 
-	// if ctrl or alt modifiers are used, when a key within 
+	// if ctrl or alt modifiers are used, when a key within
 	// the key_map is pressed, it's considered invalid
 	if (((modifier & (KMOD_CTRL | KMOD_ALT)) == KMOD_NONE)) {
 		for (uint8_t i = 0; i < _chip8_ptr->keys.size(); i++) {
@@ -257,7 +262,7 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 		if (char_pressed == SDLK_s) {
 
 		} else if (char_pressed == SDLK_l) {
-			
+
 		} else if (char_pressed == SDLK_p) {
 			if (_chip8_ptr->is_paused) {
 				_chip8_ptr->is_paused = false;
@@ -275,7 +280,7 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 			}
 		}
 
-		// // countdown timers 
+		// // countdown timers
 		// } else if (char_pressed == SDLK_DOWN) {
 		// 	_chip8_ptr->countdown_timers()
 		// 	}
@@ -304,7 +309,7 @@ void Window::stop_game_loop() {
 void adjust_volume(uint8_t* wav_buffer, uint32_t wav_length, SDL_AudioSpec* wav_spec, float volume) {
     // Depending on the audio format, the sample size can vary.
     // For simplicity, this example assumes 16-bit signed audio (AUDIO_S16LSB).
-    
+
     // Calculate the number of samples (wav_length is in bytes)
     if (wav_spec->format == AUDIO_U8) {
         // 8-bit unsigned audio
@@ -348,15 +353,15 @@ void Window::play_sound()
 		SDL_FreeWAV(wav_buffer);
 		return;
 	}
-	
+
 	/* Start playing */
 	SDL_PauseAudioDevice(device_id, 0);
 
 	// wait until we're done playing
 	while ( SDL_GetQueuedAudioSize(device_id) > 0 ) {
-		SDL_Delay(100); 
+		SDL_Delay(100);
 	}
-	
+
 	// shut everything down
 	SDL_CloseAudioDevice(device_id);
 	SDL_FreeWAV(wav_buffer);
