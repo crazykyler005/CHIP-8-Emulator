@@ -23,12 +23,23 @@ std::string get_time_str(bool in_local_time, time_t utc_seconds) {
 
 	struct tm time_struct;
 
+#ifdef _WIN32
 	// Convert epoch time to struct
 	if (in_local_time) {
-		localtime_r(&utc_seconds, &time_struct);
-	} else {
-		gmtime_r(&utc_seconds, &time_struct);
+		localtime_s(&time_struct, &utc_seconds);
 	}
+	else {
+		gmtime_s(&time_struct, &utc_seconds);
+	}
+#else
+	// Convert epoch time to struct
+	if (in_local_time) {
+		localtime_s(&utc_seconds, &time_struct);
+	}
+	else {
+		gmtime_s(&utc_seconds, &time_struct);
+	}
+#endif
 
 	// Format local time as string
 	char buffer[20];

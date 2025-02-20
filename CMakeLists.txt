@@ -6,14 +6,27 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # OS Detection
 if(WIN32)
-	find_package(SDL2 REQUIRED PATHS "C:/path/to/SDL2")
-	include_directories(${SDL2_INCLUDE_DIRS})
+    file(READ ".env" CONFIG_CONTENT)
+
+    # Extract the value after '=' and before the \n
+    string(REGEX MATCH "SDL2_LIB_DIR=([^\r\n]+)" _ ${CONFIG_CONTENT})
+    set(SDL2_LIB_DIR ${CMAKE_MATCH_1})
+
+    string(REGEX MATCH "SDL2_INCLUDE_DIR=([^\r\n]+)" _ ${CONFIG_CONTENT})
+    set(SDL2_INCLUDE_DIR ${CMAKE_MATCH_1})
+
+    include_directories(${SDL2_INCLUDE_DIR})
+    link_directories(${SDL2_LIB_DIR})
+
+    set(SDL2_LIBRARIES "${SDL2_LIB_DIR}/SDL2.lib" "${SDL2_LIB_DIR}/SDL2main.lib")
+
+    message(STATUS "SDL2 Include Directory: ${SDL2_INCLUDE_DIR}")
+    message(STATUS "SDL2 Library Directory: ${SDL2_LIB_DIR}")
 else()
 	find_package(SDL2 REQUIRED)
 	include_directories(${SDL2_INCLUDE_DIRS})
+	find_package(PkgConfig REQUIRED)
 endif()
-
-find_package(PkgConfig REQUIRED)
 
 # ImGui source files
 set(IMGUI_SRC
@@ -49,9 +62,4 @@ add_executable(chip8
 	src/helper_functions.cpp
 )
 
-# Link SDL2 libraries based on OS
-if(WIN32)
-	target_link_libraries(chip8 ${SDL2_LIBRARIES} SDL2main)
-else()
-	target_link_libraries(chip8 ${SDL2_LIBRARIES})
-endif()
+target_link_libraries(chip8 ${SDL2_LIBRARIES})
