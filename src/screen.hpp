@@ -1,6 +1,6 @@
 #pragma once
 #include "chip8.hpp"
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <memory>
 
 class Window;

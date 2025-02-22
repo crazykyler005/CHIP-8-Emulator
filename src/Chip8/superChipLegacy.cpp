@@ -1,6 +1,6 @@
 #include "superChipLegacy.hpp"
 
-SuperChipLegacy::SuperChipLegacy(Chip8Type type) : 
+SuperChipLegacy::SuperChipLegacy(Chip8Type type) :
 	SuperChipInterpreter("Superchip Legacy", type, (type == Chip8Type::SUPER_1p0) ? SC_V1p0_OPF : SC_V1p1_OPF)
 {
 	_selected_planes = 0b01;
@@ -32,9 +32,9 @@ bool SuperChipLegacy::switch_type(Chip8Type type)
 void SuperChipLegacy::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 {
 	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
-	
+
 	// low-resolution mode (64x32), even though the application is suppose to emulate that the
-	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
+	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and
 	// each pixel is represented by 2x2 on-screen pixels.
 
 	const uint8_t pixel_size = 2;
@@ -69,7 +69,7 @@ void SuperChipLegacy::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_h
 		pixels <<= ((draw_width / 2) - (x & 0xF));
 
 		// if the x position of a pixel is off screen, stop drawing
-		for (uint xline = 0; xline < draw_width && (starting_x + xline) < native_width; xline++) {
+		for (uint8_t xline = 0; xline < draw_width && (starting_x + xline) < native_width; xline++) {
 
 			size_t current_pixel = (starting_x + xline + (current_y_pos * native_width));
 
@@ -86,7 +86,7 @@ void SuperChipLegacy::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_h
 
 			// Each of the 32 pixels per row drawn gets upscaled vertically (1x1->1x2)
 
-			// NOTE: even though each pixel of a sprite is represented as 2x2 on screen pixels, 
+			// NOTE: even though each pixel of a sprite is represented as 2x2 on screen pixels,
 			// that doesn't mean the state of those 4 pixels are going to be the same. The superchip XORs the
 			// the top pixels with the current on-screen pixels and then copies them down.
 			if ((current_y_pos + 1) < native_height) {
@@ -96,7 +96,7 @@ void SuperChipLegacy::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_h
 	}
 
 	draw_flag = true;
-	
+
 	return;
 }
 

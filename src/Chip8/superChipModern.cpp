@@ -12,9 +12,9 @@ SuperChipModern::SuperChipModern() :
 void SuperChipModern::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 {
 	// printf("width: %d, height: %d, x: %d, y: %d, px_height: %d\n", native_width, native_height, x, y, sprite_height);
-	
+
 	// low-resolution mode (64x32), even though the application is suppose to emulate that the
-	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and 
+	// native resolution (128x64) does not change thus the X & Y coordinates are doubled and
 	// each pixel is represented by 2x2 on-screen pixels.
 
 	const uint8_t pixel_size = 2;
@@ -41,7 +41,7 @@ void SuperChipModern::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_h
 		}
 
 		// if the x position of a pixel is off screen, stop drawing
-		for (uint xline = 0; xline < draw_width && (x + xline) < native_width; xline++) {
+		for (uint8_t xline = 0; xline < draw_width && (x + xline) < native_width; xline++) {
 
 			size_t current_pixel = (x + xline + (current_y_pos * native_width));
 
@@ -68,6 +68,6 @@ void SuperChipModern::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_h
 	}
 
 	draw_flag = true;
-	
+
 	return;
 }

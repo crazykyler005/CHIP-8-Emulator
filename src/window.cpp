@@ -1,7 +1,12 @@
 #include "window.hpp"
 #include "helper_functions.hpp"
 #include <thread>
+
+#ifdef _WIN32
+#define FILE_PATH "./sound.wav"
+#else
 #define FILE_PATH "../sound.wav"
+#endif
 
 std::mutex mtx;
 static bool update_texture_ready = false;
@@ -75,7 +80,7 @@ int Window::init() {
 void Window::switch_interpreter(Chip8Type type)
 {
 	bool was_running = _chip8_ptr->is_running;
-	
+
 	stop_game_loop();
 
 	std::lock_guard<std::mutex> lock(mtx);
@@ -117,7 +122,7 @@ void Window::switch_interpreter(Chip8Type type)
 	}
 }
 
-void Window::main_loop() 
+void Window::main_loop()
 {
 	// prevents last selected menubar dropdowns from staying on the screen
 	screen.update_texture();
@@ -140,61 +145,12 @@ void Window::main_loop()
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		// if (update_texture) {
-		//     std::lock_guard<std::mutex> lock(mtx);
-		//     screen.update_texture();  // Update the texture on the main thread
-		//     update_texture = false;
-		// }
+		if (update_texture) {
+            std::lock_guard<std::mutex> lock(mtx);
+            screen.update_texture();  // Update the texture on the main thread
+            update_texture = false;
+        }
 
-		// Wait for the signal to update the texture
-
-		if (_chip8_ptr->is_running) {
-
-			auto fps = std::chrono::microseconds(get_microseconds_in_second() / _chip8_ptr->HZ_PER_SECOND);
-			auto start_time = std::chrono::steady_clock::now();
-			uint32_t instructions_ran = 0;
-
-			// if (_chip8_ptr->is_paused) {
-			// 	std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			// }
-
-			while (++instructions_ran < _chip8_ptr->opcodes_per_frame) {
-				_chip8_ptr->run_instruction();
-				continue;
-			}
-
-			auto time_passed = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start_time);
-
-			if (std::chrono::duration_cast<std::chrono::microseconds>(time_passed) < fps) {
-				auto sleep_duration = std::chrono::duration_cast<std::chrono::microseconds>(fps - time_passed).count();
-				sleep_thread_microseconds(sleep_duration);
-			}
-
-			{
-				std::lock_guard<std::mutex> lock(mtx);
-
-				start_time = std::chrono::steady_clock::now();
-				_chip8_ptr->countdown_timers();
-
-				if (_chip8_ptr->play_sfx) {
-					_chip8_ptr->play_sfx = false;
-
-					std::thread sound_worker(&Window::play_sound, this);
-					sound_worker.detach();
-				}
-
-				if (_chip8_ptr->draw_flag) {
-					_chip8_ptr->draw_flag = false;
-					screen.update_texture();
-					update_texture_ready = true;
-				}
-			}
-		}
-
-		if () {
-			screen.swap_textures();  // Update the texture if signaled
-		}
-		
 		auto dstRect = screen.get_texture_dimensions();
 		SDL_RenderCopyF(renderer_ptr, screen.get_texture(), NULL, &dstRect);
 
@@ -290,7 +246,7 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 	auto& char_pressed = key_info.sym;
 	auto& modifier = key_info.mod;
 
-	// if ctrl or alt modifiers are used, when a key within 
+	// if ctrl or alt modifiers are used, when a key within
 	// the key_map is pressed, it's considered invalid
 	if (((modifier & (KMOD_CTRL | KMOD_ALT)) == KMOD_NONE)) {
 		for (uint8_t i = 0; i < _chip8_ptr->keys.size(); i++) {
@@ -309,7 +265,7 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 		if (char_pressed == SDLK_s) {
 
 		} else if (char_pressed == SDLK_l) {
-			
+
 		} else if (char_pressed == SDLK_p) {
 			if (_chip8_ptr->is_paused) {
 				_chip8_ptr->is_paused = false;
@@ -327,7 +283,7 @@ void Window::on_key_event(const SDL_Keysym& key_info, bool is_press_event)
 			}
 		}
 
-		// // countdown timers 
+		// // countdown timers
 		// } else if (char_pressed == SDLK_DOWN) {
 		// 	_chip8_ptr->countdown_timers()
 		// 	}
@@ -400,15 +356,15 @@ void Window::play_sound()
 		SDL_FreeWAV(wav_buffer);
 		return;
 	}
-	
+
 	/* Start playing */
 	SDL_PauseAudioDevice(device_id, 0);
 
 	// wait until we're done playing
 	while ( SDL_GetQueuedAudioSize(device_id) > 0 ) {
-		SDL_Delay(100); 
+		SDL_Delay(100);
 	}
-	
+
 	// shut everything down
 	SDL_CloseAudioDevice(device_id);
 	SDL_FreeWAV(wav_buffer);

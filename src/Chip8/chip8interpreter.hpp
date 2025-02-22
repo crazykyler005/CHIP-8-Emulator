@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <vector>
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <array>
 
 enum class Chip8Type : uint8_t {
@@ -20,12 +20,12 @@ enum class Chip8Type : uint8_t {
 
 class Chip8Interpreter {
 
-// typedef struct __attribute__((__packed__)) uint12 { 
+// typedef struct __attribute__((__packed__)) uint12 {
 // 	unsigned val:12 = 0;
 // } uint12_t;
 
 struct key_info {
-	SDL_Scancode map; 
+	SDL_Scancode map;
 	bool is_pressed = false;
 	bool released_on_wait_event = false;
 };
@@ -46,8 +46,8 @@ public:
 	virtual bool load_program(std::string file_path);
 	virtual bool save_program_state(std::string& program_name, uint8_t state_number, uint32_t utc_timestamp);
 	virtual void load_program_state(std::string file_name);
-	virtual void print_current_opcode() { 
-		printf("opcode: %04x\n", (static_cast<uint16_t>(memory[program_ctr]) << 8) + memory[program_ctr + 1]); 
+	virtual void print_current_opcode() {
+		printf("opcode: %04x\n", (static_cast<uint16_t>(memory[program_ctr]) << 8) + memory[program_ctr + 1]);
 	};
 
 	virtual void process_key_event(uint8_t& key_index, bool is_pressed);
@@ -73,7 +73,7 @@ public:
 	bool play_sfx = false;
 	bool sound_disabled;
 
-	// TODO: optimise how pixel states are stored by changing the above array to the following 
+	// TODO: optimise how pixel states are stored by changing the above array to the following
 	// so that each bit is mapped to a pixel and each row of them is mapped to a 64bit variable
 	// std::vector<uint8_t> px_states[(64 * 32) / 8] = {};
 	std::vector<uint8_t> px_states;
@@ -117,7 +117,7 @@ protected:
 	uint8_t sound_timer = 0;
 
 	inline static uint8_t fontset[80] =
-	{ 
+	{
 		0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 		0x20, 0x60, 0x20, 0x20, 0x70, // 1
 		0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
