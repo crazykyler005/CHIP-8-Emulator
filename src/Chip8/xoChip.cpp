@@ -12,7 +12,7 @@
 // The audio pattern buffer is loaded when F002 is called. Subsequent rewrites of the memory that I pointed to at that time are not reflected in the buffer.
 // The playback offset of the audio pattern buffer only resets when the sound timer reaches 0 (either by itself, or by being set explicitly).
 XOChip::XOChip() :
-	SuperChipInterpreter("XO Chip" , Chip8Type::XO, 1000)
+	SuperChipInterpreter("XO Chip" , Chip8Type::XO, 15000)
 {
 	Chip8Interpreter::wait_for_display_update = false;
 
@@ -93,9 +93,6 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 	uint8_t sprite_width = large_sprite ? sprite_height : 8;
 	uint8_t draw_width = large_sprite ? 32 : 16;
 
-	x = (x * 2) % native_width;
-	y = (y * 2) % native_height;
-
 	// if the y position of the pixel is off screen, stop drawing
 	for (uint8_t yline = 0; yline < (sprite_height * 2); yline += pixel_size)
 	{
@@ -109,8 +106,8 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 
 				// Fetch the pixels from the memory starting at location I
 				uint8_t current_byte = memory[index_reg + (px / 8) + (large_sprite ? yline : yline / 2)];
-        		uint8_t px_mask = 0b10000000 >> (px % 8);
-
+				uint8_t px_mask = 0b10000000 >> (px % 8);
+				
 				if (current_byte & px_mask) {
 					// 8px sprite row is upscaled to 16px
 					// ex: 10111101 -> 11001111 11110011
@@ -122,8 +119,8 @@ void XOChip::low_res_draw_gfx(uint8_t& x, uint8_t& y, uint8_t& sprite_height)
 		// if the x position of a pixel is off screen, stop drawing
 		for (uint8_t xline = 0; xline < draw_width; xline++) {
 
-			uint8_t wrapped_y = (y + yline) % native_height;
-			uint8_t wrapped_x = (x + xline) % native_width;
+			uint8_t wrapped_y = ((y * pixel_size) + yline) % native_height;
+			uint8_t wrapped_x = ((x * pixel_size) + xline) % native_width;
 
 			// sets pixels in each selected plane
 			for (uint8_t plane = 0; plane < number_of_planes(); plane++) {

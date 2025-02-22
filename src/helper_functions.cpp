@@ -34,10 +34,10 @@ std::string get_time_str(bool in_local_time, time_t utc_seconds) {
 #else
 	// Convert epoch time to struct
 	if (in_local_time) {
-		localtime_s(&utc_seconds, &time_struct);
+		localtime_r(&utc_seconds, &time_struct);
 	}
 	else {
-		gmtime_s(&utc_seconds, &time_struct);
+		gmtime_r(&utc_seconds, &time_struct);
 	}
 #endif
 
