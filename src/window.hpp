@@ -89,6 +89,8 @@ private:
 
 	bool running = true;
 
+	void run_chip8_instructions();
+
 protected:
 	std::unique_ptr<MenuBar> m_menubar;
 	Screen screen;

@@ -145,10 +145,17 @@ void Window::main_loop()
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
+		if (!_chip8_ptr->is_running || _chip8_ptr->is_paused) {
+			// wait 1/60th of a second
+			std::this_thread::sleep_for(std::chrono::milliseconds(16));
+		} else {
+			run_chip8_instructions();
+		}
+
 		if (update_texture_ready) {
-			// std::lock_guard<std::mutex> lock(mtx);
-			screen.swap_textures();
+			std::lock_guard<std::mutex> lock(mtx);
 			screen.update_texture();  // Update the texture on the main thread
+			screen.swap_textures();
 			update_texture_ready = false;
 		}
 
@@ -161,41 +168,39 @@ void Window::main_loop()
 		ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer_ptr);
 
 		SDL_RenderPresent(renderer_ptr);
+	}
+}
 
-		if (!_chip8_ptr->is_running || _chip8_ptr->is_paused) {
-			// wait 1/60th of a second
-			std::this_thread::sleep_for(std::chrono::milliseconds(16));
-			continue;
-		}
+void Window::run_chip8_instructions()
+{
+	uint32_t instructions_ran = 0;
+	auto instruction_start_time = std::chrono::steady_clock::now();
 
-		uint32_t instructions_ran = 0;
-		auto instruction_start_time = std::chrono::steady_clock::now();
+	while (instructions_ran++ < _chip8_ptr->opcodes_per_frame) {
+		_chip8_ptr->run_instruction();
+		continue;
+	}
 
-		while (instructions_ran++ < _chip8_ptr->opcodes_per_frame) {
-			_chip8_ptr->run_instruction();
-			continue;
-		}
+	// microseconds per frame
+	auto usps = std::chrono::microseconds(get_microseconds_in_second() / _chip8_ptr->HZ_PER_SECOND);
+	auto time_passed = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - instruction_start_time);
 
-		auto fps = std::chrono::microseconds(get_microseconds_in_second() / _chip8_ptr->HZ_PER_SECOND);
-		auto time_passed = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - instruction_start_time);
+	if (std::chrono::duration_cast<std::chrono::microseconds>(time_passed) < usps) {
+		auto sleep_duration = std::chrono::duration_cast<std::chrono::microseconds>(usps - time_passed).count();
+		sleep_thread_microseconds(sleep_duration);
+	}
 
-		if (std::chrono::duration_cast<std::chrono::microseconds>(time_passed) < fps) {
-			auto sleep_duration = std::chrono::duration_cast<std::chrono::microseconds>(fps - time_passed).count();
-			sleep_thread_microseconds(sleep_duration);
-		}
+	_chip8_ptr->countdown_timers();
 
-		_chip8_ptr->countdown_timers();
+	if (_chip8_ptr->play_sfx) {
+		_chip8_ptr->play_sfx = false;
+		std::thread sound_worker(&Window::play_sound, this);
+		sound_worker.detach();
+	}
 
-		if (_chip8_ptr->play_sfx) {
-			_chip8_ptr->play_sfx = false;
-			std::thread sound_worker(&Window::play_sound, this);
-			sound_worker.detach();
-		}
-
-		if (_chip8_ptr->draw_flag) {
-			_chip8_ptr->draw_flag = false;
-			update_texture_ready = true;
-		}
+	if (_chip8_ptr->draw_flag) {
+		_chip8_ptr->draw_flag = false;
+		update_texture_ready = true;
 	}
 }
 
