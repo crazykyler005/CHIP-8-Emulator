@@ -37,9 +37,11 @@ Also include the `direct/` folder if your compiling on Windows
 ## Running the application
 ### In Linux
 To run the application you need to first generate the executable using the following make command:
+```
+make build
+```
 
 Next run the executable
-
 ```
 .build/chip8
 ```
