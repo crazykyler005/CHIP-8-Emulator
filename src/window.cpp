@@ -2,11 +2,7 @@
 #include "helper_functions.hpp"
 #include <thread>
 
-#ifdef _WIN32
 #define FILE_PATH "./sound.wav"
-#else
-#define FILE_PATH "../sound.wav"
-#endif
 
 std::mutex mtx;
 static bool update_texture_ready = false;
