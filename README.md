@@ -36,24 +36,16 @@ Also include the `direct/` folder if your compiling on Windows
 
 ## Running the application
 ### In Linux
-To run the application you need to first generate the make file but running the following terminal commands in the root directory of the repo
+To run the application you need to first generate the executable using the following make command:
+
+Next run the executable
 
 ```
-mkdir build
-cd build
-cmake ..
+.build/chip8
 ```
-
-Next build the application
-
+or build and run
 ```
-make
-```
-
-Run the executable
-
-```
-./chip8
+make run
 ```
 
 ### In Windows

@@ -1,4 +1,3 @@
-// #include "window.hpp"
 #include <cstdio>
 #include <stdint.h>
 #include <string>

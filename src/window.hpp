@@ -78,16 +78,18 @@ public:
 		ColorScheme( "Vibrant", get_rgba32_value(126, 31, 35), get_rgba32_value(196, 24, 31), get_rgba32_value(18, 10, 25), get_rgba32_value(94, 64, 105) )
 	};
 
-	static inline uint8_t seletected_color_scheme = 0;
+	static inline uint8_t selected_color_scheme = 0;
 
 private:
 	inline static const int MIN_WINDOW_WIDTH = 250;
 	inline static const int MIN_WINDOW_HEIGHT = 125;
 	inline static const int _native_menubar_height = 25;
 
-	std::shared_ptr<Chip8Interpreter> _chip8_ptr = std::make_shared<Chip8>(Chip8Type::ORIGINAL);
+	std::shared_ptr<Chip8Interpreter> _chip8_ptr = std::make_shared<XOChip>();
 
 	bool running = true;
+
+	void run_chip8_instructions();
 
 protected:
 	std::unique_ptr<MenuBar> m_menubar;
