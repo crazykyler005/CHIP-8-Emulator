@@ -83,10 +83,10 @@ SDL_FRect Screen::get_texture_dimensions()
 {
 	float menu_bar_height = ImGui::GetFrameHeight();
 
-	return {
-		.x = 0,
-		.y = menu_bar_height,
-		.w = ImGui::GetMainViewport()->Size.x,
-		.h = ImGui::GetMainViewport()->Size.y - menu_bar_height
+	return SDL_FRect {
+		0,
+		menu_bar_height,
+		ImGui::GetMainViewport()->Size.x,
+		ImGui::GetMainViewport()->Size.y - menu_bar_height
 	};
 }
