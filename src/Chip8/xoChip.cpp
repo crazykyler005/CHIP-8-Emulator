@@ -322,7 +322,7 @@ bool XOChip::run_additional_or_modified_instructions(uint16_t& opcode, uint8_t& 
 
 			// Sets I to a large hexadecimal character based on the value of VX. Characters 0-F (in hexadecimal) are represented by a 8x10 font
 			} else if (low_byte == 0x30) {
-				index_reg = registers[VX_reg] * 10 + sizeof(fontset);
+				index_reg = ((registers[VX_reg] & 0xF) * 10) + sizeof(fontset);
 
 			// FX3A: Set the pitch register to the value in VX.
 			} else if (low_byte == 0x3A) {

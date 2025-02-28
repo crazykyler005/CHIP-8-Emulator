@@ -274,13 +274,13 @@ void Chip8Interpreter::run_instruction() {
 		case 0xE000:
 			// Skips the next instruction if the key stored in VX is pressed (usually the next instruction is a jump to skip a code block)
 			if ((opcode & 0xFF) == 0x9E) {
-				if (keys[registers[VX_reg]].is_pressed) {
+				if (keys[registers[VX_reg] & 0xF].is_pressed) {
 					skip_instruction();
 				}
 
 			// Skips the next instruction if the key stored in VX is not pressed (usually the next instruction is a jump to skip a code block)
 			} else if ((opcode & 0xFF) == 0xA1) {
-				if (!keys[registers[VX_reg]].is_pressed) {
+				if (!keys[registers[VX_reg] & 0xF].is_pressed) {
 					skip_instruction();
 				}
 
@@ -340,7 +340,7 @@ void Chip8Interpreter::run_instruction() {
 
 			// Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font
 			} else if (sub_opcode == 0x29) {
-				index_reg = registers[VX_reg] * 5;
+				index_reg = (registers[VX_reg] & 0xF) * 5;
 
 			// Stores the binary-coded decimal representation of VX, with the hundreds digit in memory at location in I, 
 			// the tens digit at location I+1, and the ones digit at location I+2

@@ -260,17 +260,10 @@ bool SuperChipInterpreter::run_additional_or_modified_instructions(uint16_t& opc
 					return true;
 				}
 
-			} else if ((low_byte == 0x29) && (_type == Chip8Type::SUPER_1p0)) {
-
-				if (registers[VX_reg] & 0xF0 == 1) {
-					registers[VX_reg] * 10 + sizeof(fontset);
-				}
-				
-				index_reg = registers[VX_reg] * 5;
-
-			// Sets I to a large hexadecimal character based on the value of VX. Characters 0-F (in hexadecimal) are represented by a 8x10 font
-			} else if ((low_byte == 0x30) && (_type != Chip8Type::SUPER_1p0)) {
-				index_reg = registers[VX_reg] * 10 + sizeof(fontset);
+			// Sets I to a large hexadecimal character based on the value of VX. Characters 0-9 (in hexadecimal) are represented by a 8x10 font
+			// the Super Chip 1.0/1.1 doesn't support A-F sprites but all coorsponding applications are never to going to refer to one beyond 9.
+			} else if (low_byte == 0x30) {
+				index_reg = ((registers[VX_reg] & 0xF) * 10) + sizeof(fontset);
 
 			} else if (low_byte == 0x75) {
 				for (uint8_t i = 0; i <= VX_reg; i++) {
